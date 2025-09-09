@@ -1,0 +1,7 @@
+dash>=2.10
+plotly>=5.0
+numpy
+scipy
+astropy
+matplotlib
+gunicorn
