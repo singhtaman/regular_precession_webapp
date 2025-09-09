@@ -131,7 +131,7 @@ rp_params = {
     "theta_tilde": 4.0,             # dimensionless
     "Omega_tilde": 2.0,             # dimensionless
     "gamma_P": 0.0,
-}}
+}
 
 #default non-precessing parameters - Same as NP_params_edge_on_1 - System 2 - Edge-on (cos_i_JN = 0)
 np_params = {
