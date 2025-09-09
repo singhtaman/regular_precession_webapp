@@ -65,7 +65,7 @@ default_precession_params_sys3_NP = redshifted_new_params(0.3, default_precessio
 
 
 # Default parameters
-default_precession_params_sys2_RP['Omega_tilde'] = 2
+default_precession_params_sys2_RP['omega_tilde'] = 2
 default_precession_params_sys2_RP['theta_tilde'] = 5
 default_precession_params_sys2_RP['gamma_P'] = 0
 
@@ -73,7 +73,7 @@ import plotly.graph_objects as go
 f_min = 20
 delta_f = 0.05
 
-def plot_cos_L_phi_L(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, Omega_tilde, gamma_P):
+def plot_cos_L_phi_L(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, omega_tilde, gamma_P):
     params_NP = default_precession_params_sys2_NP.copy()
     params_NP['theta_S'] = theta_S
     params_NP['phi_S'] = phi_S
@@ -87,7 +87,7 @@ def plot_cos_L_phi_L(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, 
     
     params_RP = params_NP.copy()
     params_RP['theta_tilde'] = theta_tilde
-    params_RP['Omega_tilde'] = Omega_tilde
+    params_RP['omega_tilde'] = omega_tilde
     params_RP['gamma_P'] = gamma_P
     
     
@@ -119,7 +119,7 @@ def plot_cos_L_phi_L(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, 
     
     return fig
 
-def plot_amplitude(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, Omega_tilde, gamma_P):
+def plot_amplitude(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, omega_tilde, gamma_P):
     params_NP = default_precession_params_sys2_NP.copy()
     params_NP['theta_S'] = theta_S
     params_NP['phi_S'] = phi_S
@@ -133,7 +133,7 @@ def plot_amplitude(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, ph
     
     params_RP = params_NP.copy()
     params_RP['theta_tilde'] = theta_tilde
-    params_RP['Omega_tilde'] = Omega_tilde
+    params_RP['omega_tilde'] = omega_tilde
     params_RP['gamma_P'] = gamma_P
 
     f_cut = Regular_precession(params_RP).get_f_cut()
@@ -169,7 +169,7 @@ def plot_amplitude(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, ph
     return fig
 
 
-def plot_phase(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, Omega_tilde, gamma_P):
+def plot_phase(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, omega_tilde, gamma_P):
     params_NP = default_precession_params_sys2_NP.copy()
     params_NP['theta_S'] = theta_S
     params_NP['phi_S'] = phi_S
@@ -183,7 +183,7 @@ def plot_phase(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J,
     
     params_RP = params_NP.copy()
     params_RP['theta_tilde'] = theta_tilde
-    params_RP['Omega_tilde'] = Omega_tilde
+    params_RP['omega_tilde'] = omega_tilde
     params_RP['gamma_P'] = gamma_P
 
     f_cut = Regular_precession(params_RP).get_f_cut()
@@ -218,7 +218,7 @@ from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 
 
-def plot_combined(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, Omega_tilde, gamma_P):
+def plot_combined(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, omega_tilde, gamma_P):
     
     cos_i_JN = (np.sin(theta_J) * np.sin(theta_S) * np.cos(phi_J - phi_S)) + (np.cos(theta_J) * np.cos(theta_S))
     
@@ -229,9 +229,9 @@ def plot_combined(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi
 
     fig = make_subplots(rows=1, cols=3, subplot_titles=(r"Modulation", "Amplitude", "Phase"), vertical_spacing=0.25)
 
-    fig_cos_L = plot_cos_L_phi_L(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, Omega_tilde, gamma_P)
-    fig_amp = plot_amplitude(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, Omega_tilde, gamma_P)
-    fig_phase = plot_phase(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, Omega_tilde, gamma_P)
+    fig_cos_L = plot_cos_L_phi_L(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, omega_tilde, gamma_P)
+    fig_amp = plot_amplitude(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, omega_tilde, gamma_P)
+    fig_phase = plot_phase(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, omega_tilde, gamma_P)
     
 
     # Add traces and update axes for fig_cos_L
@@ -385,8 +385,8 @@ app.layout = html.Div([
     ], style={'width': '50%', 'display': 'inline-block'}),
 
     html.Div([
-        html.Label(id='Omega_tilde-label', children=f'Precession frequency, Ω̃ : {2.0}', style={'font-size': '15px', 'opacity': '0.9'}),
-        dcc.Slider(id='Omega_tilde-slider',
+        html.Label(id='omega_tilde-label', children=f'Precession frequency, Ω̃ : {2.0}', style={'font-size': '15px', 'opacity': '0.9'}),
+        dcc.Slider(id='omega_tilde-slider',
                    min=0, max=4.0, step=0.1, value=2.0,
                    marks={i: str(i) for i in [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4]},
                    tooltip={"placement": "bottom", "always_visible": False}),
@@ -507,12 +507,12 @@ app.layout = html.Div([
     Input('theta_J-slider', 'value'),
     Input('phi_J-slider', 'value'),
     Input('theta_tilde-slider', 'value'),
-    Input('Omega_tilde-slider', 'value'),
+    Input('omega_tilde-slider', 'value'),
     Input('gamma_P-slider', 'value'),
 )
 
-def update_plot(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, Omega_tilde, gamma_P):
-    return plot_combined(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, Omega_tilde, gamma_P)
+def update_plot(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, omega_tilde, gamma_P):
+    return plot_combined(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi_J, theta_tilde, omega_tilde, gamma_P)
 
 @app.callback(
     Output('chirp_mass-label', 'children'),
@@ -563,9 +563,9 @@ def update_theta_tilde(value):
     return f'Precession amplitude, θ̃ : {value:.1f}'
 
 @app.callback(
-    Output('Omega_tilde-label', 'children'),
-    Input('Omega_tilde-slider', 'value'))
-def update_Omega_tilde(value):
+    Output('omega_tilde-label', 'children'),
+    Input('omega_tilde-slider', 'value'))
+def update_omega_tilde(value):
     return f'Precession frequency, Ω̃ : {value:.1f}'
 
 @app.callback(
@@ -598,6 +598,7 @@ def update_total_mass(chirp_mass, mass_ratio, redshift):
 
 import os
 if __name__ == '__main__':
+    app.run_server(debug=True)  # defaults to http://127.0.0.1:8050
     # Get the port from the environment variable
-    port = int(os.environ.get('PORT', 5000))
-    app.run_server(host='0.0.0.0', port=port)
+    #port = int(os.environ.get('PORT', 5000))
+    #app.run_server(host='0.0.0.0', port=port)

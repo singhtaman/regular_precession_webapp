@@ -28,7 +28,7 @@ default_precession_params_sys2_RP = {
     "t_c": 0.0,
     "phi_c": 0.0,
     "theta_tilde": 5.0,             # dimensionless
-    "Omega_tilde": 2.0,             # dimensionless
+    "omega_tilde": 2.0,             # dimensionless
     "gamma_P": 0.0,
 }
 
@@ -44,7 +44,7 @@ default_precession_params_sys2_NP = {
     "t_c": 0.0,
     "phi_c": 0.0,
     "theta_tilde": 0.0,
-    "Omega_tilde": 0.0,
+    "omega_tilde": 0.0,
     "gamma_P": 0.0,
 }
 
@@ -61,7 +61,7 @@ default_precession_params_sys3_RP = {
     "t_c": 0.0,
     "phi_c": 0.0,
     "theta_tilde": 5.0,             # dimensionless
-    "Omega_tilde": 2.0,             # dimensionless
+    "omega_tilde": 2.0,             # dimensionless
     "gamma_P": 0.0,
 }
 
@@ -77,7 +77,7 @@ default_precession_params_sys3_NP = {
     "t_c": 0.0,
     "phi_c": 0.0,
     "theta_tilde": 0.0,
-    "Omega_tilde": 0.0,
+    "omega_tilde": 0.0,
     "gamma_P": 0.0,
 }
 
@@ -94,7 +94,7 @@ default_precession_params_sys1_RP = {
     "t_c": 0.0,
     "phi_c": 0.0,
     "theta_tilde": 5.0,             # dimensionless
-    "Omega_tilde": 2.0,             # dimensionless
+    "omega_tilde": 2.0,             # dimensionless
     "gamma_P": 0.0,
 }
 
@@ -110,7 +110,7 @@ default_precession_params_sys1_NP = {
     "t_c": 0.0,
     "phi_c": 0.0,
     "theta_tilde": 0.0,
-    "Omega_tilde": 0.0,
+    "omega_tilde": 0.0,
     "gamma_P": 0.0,
 }
 
@@ -129,7 +129,7 @@ rp_params = {
     "t_c": 0.0,
     "phi_c": 0.0,
     "theta_tilde": 4.0,             # dimensionless
-    "Omega_tilde": 2.0,             # dimensionless
+    "omega_tilde": 2.0,             # dimensionless
     "gamma_P": 0.0,
 }
 
@@ -145,6 +145,6 @@ np_params = {
     "t_c": 0.0,
     "phi_c": 0.0,
     "theta_tilde": 0.0,
-    "Omega_tilde": 0.0,
+    "omega_tilde": 0.0,
     "gamma_P": 0.0,
 }
