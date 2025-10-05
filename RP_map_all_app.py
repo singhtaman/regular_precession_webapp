@@ -249,7 +249,7 @@ def plot_combined(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi
         fig.add_trace(trace, row=1, col=2)
 
         fig.update_xaxes(type='log', title_text='f (Hz)', row=1, col=2)
-        fig.update_yaxes(title_text=r'[B(GP)/B(NP)] - 1', title_standoff=1, row=1, col=2)
+        fig.update_yaxes(title_text=r'[B(RP)/B(NP)] - 1', title_standoff=1, row=1, col=2)
         fig.update_layout(showlegend=True)
         fig.update_yaxes(range=[-1.05, 0.95], row=1, col=2)
         fig.update_xaxes(range=[math.log10(19), math.log10(150)], tickmode='array', tickvals=[math.log10(20), math.log10(40), math.log10(60), math.log10(80), math.log10(100), math.log10(140)], ticktext=['20', '40', '60', '80', '100', '140'], row=1, col=2)
@@ -259,7 +259,7 @@ def plot_combined(chirp_mass, mass_ratio, redshift, theta_S, phi_S, theta_J, phi
         fig.add_trace(trace, row=1, col=3)
 
         fig.update_xaxes(type='log', title_text='f (Hz)', row=1, col=3)
-        fig.update_yaxes(title_text=r'Φ(GP) - Φ(NP)', title_standoff=1, row=1, col=3)
+        fig.update_yaxes(title_text=r'Φ(RP) - Φ(NP)', title_standoff=1, row=1, col=3)
         fig.update_layout(showlegend=False)
         fig.update_yaxes(range=[-3.25, 0.75], row=1, col=3)
         fig.update_xaxes(range=[math.log10(19), math.log10(150)], tickmode='array', tickvals=[math.log10(20), math.log10(40), math.log10(60), math.log10(80), math.log10(100), math.log10(140)], ticktext=['20', '40', '60', '80', '100', '140'], row=1, col=3)
