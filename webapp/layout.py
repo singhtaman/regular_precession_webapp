@@ -4,6 +4,7 @@ from dash import dcc, get_asset_url, html
 from .figures import graph_config, placeholder_figure
 from .params import GROUPS, PRESETS
 
+PAPER_URL = "https://arxiv.org/abs/2509.10628"
 REPO_URL = "https://github.com/singhtaman/regular_precession_webapp"
 GITHUB_URL = "https://github.com/singhtaman"
 WEBSITE_URL = "https://singhtaman.github.io/"
@@ -130,6 +131,15 @@ def about():
             html.P(["Drag a slider or type a value; plots update when you release the handle. "
                     "Use the plot toolbar to zoom, pan or save a PNG, and double-click a plot to reset its view."],
                    className="muted"),
+            html.P(className="reference", children=[
+                html.B("Reference: "),
+                "T. Singh, E. Stoikos, S. Ali, N. Steinle, M. Kesden and L. King, ",
+                html.I("Detecting regular precession using a new gravitational waveform model directly "
+                       "parameterized by both precession amplitude and frequency"),
+                ", ",
+                html.A("arXiv:2509.10628", href=PAPER_URL, target="_blank", rel="noopener"),
+                " [gr-qc] (2025).",
+            ]),
         ]),
     ])
 
@@ -147,6 +157,8 @@ def build():
                 ]),
             ]),
             html.Nav(className="top-links", children=[
+                html.A([html.I(className="icon icon-paper"), html.Span("Paper")], href=PAPER_URL,
+                       target="_blank", rel="noopener", className="top-link", title="arXiv:2509.10628"),
                 html.A([html.I(className="icon icon-code"), html.Span("Source")], href=REPO_URL,
                        target="_blank", rel="noopener", className="top-link"),
                 html.A([html.I(className="icon icon-user"), html.Span("GitHub")], href=GITHUB_URL,
