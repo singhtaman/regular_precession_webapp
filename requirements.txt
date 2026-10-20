@@ -1,7 +1,9 @@
-dash>=2.10
-plotly>=5.0
-numpy
-scipy
-astropy
-matplotlib
-gunicorn
+# Runtime dependencies for the redesigned app (app.py / webapp/), used by Vercel.
+# The Render deployment builds from `main`, whose requirements.txt is unchanged.
+# Versions are pinned to the set the app and its regression tests were verified with.
+dash==4.4.1
+plotly==7.1.0
+flask==3.1.3
+numpy==2.5.4
+scipy==1.18.1
+astropy==8.0.2

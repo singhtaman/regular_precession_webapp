@@ -1,0 +1,6 @@
+# Local development and tests. Not installed on Vercel.
+-r requirements.txt
+pytest==8.4.2
+gunicorn==26.2.0
+# Needed only to import RP_map_all_app.py, the reference the regression tests compare against.
+matplotlib==3.11.2
