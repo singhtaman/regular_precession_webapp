@@ -89,7 +89,7 @@ def legend():
     item = lambda cls, text: html.Span([html.I(className=f"key {cls}", **{"aria-hidden": "true"}), text], className="legend-item")
     return html.Div(className="legend", children=[
         item("key-rp", "Regular precession (RP)"),
-        item("key-np", "No precession (NP) reference"),
+        item("key-np", "Non-precessing (NP) reference"),
         item("key-j", "J direction"),
     ])
 
@@ -196,7 +196,7 @@ def build():
         ]),
 
         html.Footer(className="footer", children=[
-            html.Span("© Tamanjyot Singh @ UTD"),
+            html.Span("© Tamanjyot Singh"),
             html.Span("Supported by NSF grant PHY-2309320", className="muted"),
         ]),
     ])
