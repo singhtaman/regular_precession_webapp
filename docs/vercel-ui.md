@@ -11,6 +11,7 @@ The Render app (`RP_map_all_app.py`), the `Procfile` and the scientific modules
 | Branch | `main` | `feature/vercel-ui` |
 | Dependencies | `requirements.txt` on `main` (unpinned) | `requirements.txt` on this branch (pinned) |
 | Server | `gunicorn RP_map_all_app:server` | Vercel Function (Python 3.12) |
+| URL | your Render service | https://regularprecession.vercel.app |
 
 **Do not merge this branch into `main` as is.** Render builds from `main` and installs
 its `requirements.txt`; on this branch that file is the pinned Vercel runtime set, which

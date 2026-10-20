@@ -405,7 +405,6 @@ a { color: var(--accent); }
 
 .key { display: inline-block; width: 22px; height: 0; flex: none; }
 .key-rp { border-top: 2.5px solid var(--accent); }
-.key-np { border-top: 1.5px dashed var(--text); }
 .key-j { width: 10px; height: 10px; border-radius: 50%; background: var(--j); box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px rgba(217, 58, 43, 0.25); }
 
 .results-actions { display: flex; align-items: center; gap: var(--space-3); margin-left: auto; }

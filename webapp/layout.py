@@ -89,7 +89,6 @@ def legend():
     item = lambda cls, text: html.Span([html.I(className=f"key {cls}", **{"aria-hidden": "true"}), text], className="legend-item")
     return html.Div(className="legend", children=[
         item("key-rp", "Regular precession (RP)"),
-        item("key-np", "Non-precessing (NP) reference"),
         item("key-j", "J direction"),
     ])
 
