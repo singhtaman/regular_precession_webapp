@@ -53,6 +53,13 @@ special-angle grid.
 
 ## Deploy
 
-Follow `VERCEL_APP_GUIDE.md` section 11.6: deploy from `git archive feature/vercel-ui`,
-with `VERCEL_SUPPORT_LARGE_FUNCTIONS=1` and `VERCEL_PYTHON_DISABLE_RUNTIME_INSTALL=1`
-set on the project (the dependency bundle is above 225 MB).
+The GitHub repository is connected to the Vercel project `regularprecession`:
+
+- Pushing to `feature/vercel-ui` (the production branch) deploys to production.
+- Pushes to any other branch, including `main`, are skipped by the Ignored Build Step
+  `if [ "$VERCEL_GIT_COMMIT_REF" = "feature/vercel-ui" ]; then exit 1; else exit 0; fi`.
+- `VERCEL_SUPPORT_LARGE_FUNCTIONS=1` and `VERCEL_PYTHON_DISABLE_RUNTIME_INSTALL=1` are set
+  on the project because the dependency bundle is above 225 MB.
+
+To deploy by hand instead, follow `VERCEL_APP_GUIDE.md` section 11.6
+(`git archive feature/vercel-ui`, then `vercel deploy --prod`).
