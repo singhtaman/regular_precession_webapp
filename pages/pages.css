@@ -70,3 +70,37 @@
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Frequency / time switch */
+.results-lead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); }
+
+.domain-switch {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.domain-switch button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-2);
+  font: 500 13px/1 var(--font);
+  cursor: pointer;
+}
+.domain-switch button:hover { color: var(--accent-strong); }
+.domain-switch button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+
+.key-np { border-top: 2.5px solid rgba(29, 36, 51, 0.55); }
+.legend-item[hidden], .plot-card[hidden] { display: none; }
+
+/* Time-domain strain spans both columns of the grid. */
+.plot-wide { grid-column: 1 / -1; }
+.plot-frame-tall { height: 460px; }
+
+@media (max-width: 559px) {
+  .plot-frame-tall { height: 400px; }
+}

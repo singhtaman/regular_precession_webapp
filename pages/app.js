@@ -12,12 +12,14 @@
     mod: { el: $("#mod-graph"), file: "rp_modulation" },
     amp: { el: $("#amp-graph"), file: "rp_amplitude" },
     phase: { el: $("#phase-graph"), file: "rp_phase" },
+    strain: { el: $("#strain-graph"), file: "rp_strain" },
   };
 
   let P = null;              // params.py, as JSON
   let grid = null;           // {fMin, deltaF} from physics.py
   const state = {};          // slider id -> current value
   const controls = {};       // slider id -> {range, number, readout, param}
+  let domain = "frequency";  // "frequency" | "time": which result panels are shown
   let busy = false, pending = null, runId = 0;
 
   // ---------- Small helpers ----------
@@ -161,17 +163,29 @@
 
   function schedule() {
     if (!grid) return;
-    const values = currentValues();
-    if (busy) { pending = values; return; }
+    const request = { type: "run", values: currentValues(), domain };
+    if (busy) { pending = request; return; }
+    send(request);
+  }
+
+  function send(request) {
     busy = true;
     $("#plot-grid").classList.add("is-busy");
-    worker.postMessage({ type: "run", id: ++runId, values });
+    worker.postMessage({ ...request, id: ++runId });
   }
 
   function done() {
     busy = false;
-    if (pending) { const v = pending; pending = null; busy = true; worker.postMessage({ type: "run", id: ++runId, values: v }); }
+    if (pending) { const r = pending; pending = null; send(r); }
     else $("#plot-grid").classList.remove("is-busy");
+  }
+
+  function setDomain(d) {
+    domain = d;
+    document.querySelectorAll(".domain-switch button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.domain === d)));
+    document.querySelectorAll(".fd-only").forEach((el) => { el.hidden = d !== "frequency"; });
+    document.querySelectorAll(".td-only").forEach((el) => { el.hidden = d !== "time"; });
+    schedule();
   }
 
   // ---------- Results (webapp/callbacks.py: update) ----------
@@ -200,12 +214,14 @@
     return exp >= 4 ? [`${F.formatG(v / 10 ** exp, 2)}×10`, h("sup", {}, String(exp))] : [F.formatG(v, 3)];
   }
 
-  function notes(r) {
+  function notes(r, time) {
     const out = [];
     let bad = 0;
-    for (const a of [r.phi_L, r.cos_L, r.amp, r.phase]) for (const v of a) if (!isFinite(v)) bad++;
+    const arrays = time ? [r.phi_L, r.cos_L, r.h_RP, r.h_NP] : [r.phi_L, r.cos_L, r.amp, r.phase];
+    for (const a of arrays) for (const v of a) if (!isFinite(v)) bad++;
     if (bad) out.push([`${bad.toLocaleString("en-US")} computed values are not finite (NaN or ∞) and are left out of the plots.`]);
     if (F.isPoint(r.phi_L, r.cos_L)) out.push(["L does not move for these parameters, so the modulation of L is a single point."]);
+    if (time) return out;  // the remaining notes are about the amplitude and phase panels
     if (F.isFlatZero(r.amp, r.phase)) out.push(["RP coincides with the non-precessing signal here, so its curves lie on the zero line."]);
     const peak = F.ampPeak(r);
     if (peak) {
@@ -232,7 +248,7 @@
       stat("Luminosity distance", d.luminosity_distance.toFixed(3), "Gpc", "flat ΛCDM, Planck 2018"));
   }
 
-  function render(r) {
+  function render(r, time) {
     const exportBtn = $("#export-csv");
     const status = $("#status");
     if (r.invalid) {
@@ -257,18 +273,25 @@
       exportBtn.disabled = true;
       return;
     }
-    status.textContent = `${r.n.toLocaleString("en-US")} samples · ${grid.fMin}–${r.f[r.n - 1].toFixed(1)} Hz, `
-      + `Δf = ${grid.deltaF} Hz · ${Math.round(r.ms)} ms`;
-    const n = notes(r);
+    status.textContent = time
+      ? `${r.nt.toLocaleString("en-US")} samples · ${(r.t[r.nt - 1] - r.t[0]).toFixed(2)} s at ${r.fs} Hz · `
+        + `from ${grid.fMin}–${r.f[r.n - 1].toFixed(1)} Hz · ${Math.round(r.ms)} ms`
+      : `${r.n.toLocaleString("en-US")} samples · ${grid.fMin}–${r.f[r.n - 1].toFixed(1)} Hz, `
+        + `Δf = ${grid.deltaF} Hz · ${Math.round(r.ms)} ms`;
+    const n = notes(r, time);
     if (n.length) notice("info", "About these results", n); else notice(null);
     draw("mod", F.modulationFigure(r));
-    draw("amp", F.amplitudeFigure(r));
-    draw("phase", F.phaseFigure(r));
+    if (time) {
+      draw("strain", F.strainFigure(r));
+    } else {
+      draw("amp", F.amplitudeFigure(r));
+      draw("phase", F.phaseFigure(r));
+    }
     exportBtn.disabled = false;
   }
 
   function exportCsv() {
-    worker.postMessage({ type: "csv", id: ++runId, values: currentValues() });
+    worker.postMessage({ type: "csv", id: ++runId, values: currentValues(), domain });
   }
 
   function download([name, content]) {
@@ -295,7 +318,7 @@
       enable();
       schedule();
     } else if (m.type === "result") {
-      render(m.data);
+      if (!pending) render(m.data, Boolean(m.data.t));  // skip results already superseded
       done();
     } else if (m.type === "csv") {
       if (m.data) download(m.data);
@@ -310,6 +333,7 @@
     if (P) apply(Object.fromEntries(P.groups.flatMap((g) => g.params.map((p) => [p.id, p.value]))));
   });
   $("#export-csv").addEventListener("click", exportCsv);
+  document.querySelectorAll(".domain-switch button").forEach((b) => b.addEventListener("click", () => setDomain(b.dataset.domain)));
 
   blank();
 })();

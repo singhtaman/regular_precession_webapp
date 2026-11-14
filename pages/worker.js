@@ -1,6 +1,6 @@
 /* Runs the Python model in Pyodide, off the main thread so the page stays responsive.
 
-   Messages in:  {type: "run", id, values} | {type: "csv", id, values}
+   Messages in:  {type: "run", id, values, domain} | {type: "csv", id, values, domain}
    Messages out: {type: "progress", text} | {type: "params", params} | {type: "ready", grid}
                  {type: "result", id, data} | {type: "csv", id, data} | {type: "fatal", text}
 */
@@ -13,6 +13,7 @@ const SOURCES = [
   "webapp/__init__.py",
   "webapp/params.py",
   "webapp/physics.py",
+  "webapp/time_domain.py",
   "rp_page.py",
 ];
 
@@ -25,6 +26,19 @@ function f64(bytes) {
   return new Float64Array(bytes.slice().buffer);
 }
 
+async function fetchText(url, attempts = 3) {
+  for (let i = 1; ; i++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.text();
+    } catch (err) {
+      if (i >= attempts) throw new Error(`Could not download ${url} (${err.message})`);
+      await new Promise((r) => setTimeout(r, 300 * i));
+    }
+  }
+}
+
 async function init() {
   const progress = (text) => postMessage({ type: "progress", text });
 
@@ -33,16 +47,10 @@ async function init() {
 
   progress("Loading the model code");
   pyodide.FS.mkdirTree("/home/pyodide/webapp");
-  await Promise.all(SOURCES.map(async (path) => {
-    let res;
-    try {
-      res = await fetch("py/" + path);
-    } catch (err) {  // blocked before reaching the server, e.g. by a content blocker
-      throw new Error(`The browser blocked ${path} (${err.message}). A content or ad blocker may be the cause.`);
-    }
-    if (!res.ok) throw new Error(`Could not load ${path} (HTTP ${res.status})`);
-    pyodide.FS.writeFile("/home/pyodide/" + path, await res.text());
-  }));
+  // One file at a time, with retries: simple local servers refuse bursts of parallel connections.
+  for (const path of SOURCES) {
+    pyodide.FS.writeFile("/home/pyodide/" + path, await fetchText("py/" + path));
+  }
 
   // params.py needs only NumPy, so the controls can appear before SciPy and Astropy arrive.
   progress("Loading NumPy");
@@ -57,9 +65,9 @@ async function init() {
   postMessage({ type: "ready", grid: JSON.parse(bridge.load_model()) });
 }
 
-function run(values) {
-  const res = bridge.evaluate(values).toJs({ dict_converter: Object.fromEntries });
-  for (const key of ["f", "phi_L", "cos_L", "amp", "phase"]) {
+function run(values, domain) {
+  const res = bridge.evaluate(values, domain).toJs({ dict_converter: Object.fromEntries });
+  for (const key of ["f", "phi_L", "cos_L", "amp", "phase", "t", "h_RP", "h_NP"]) {
     if (res[key]) res[key] = f64(res[key]);
   }
   return res;
@@ -71,16 +79,16 @@ const ready = init().catch((err) => {
 });
 
 onmessage = async (e) => {
-  const { type, id, values } = e.data;
+  const { type, id, values, domain } = e.data;
   await ready;
   try {
     if (type === "run") {
       const t0 = performance.now();
-      const data = run(values);
+      const data = run(values, domain);
       data.ms = performance.now() - t0;
       postMessage({ type: "result", id, data });
     } else if (type === "csv") {
-      const out = bridge.export_csv(values);
+      const out = bridge.export_csv(values, domain);
       postMessage({ type: "csv", id, data: out ? out.toJs() : null });
     }
   } catch (err) {

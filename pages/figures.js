@@ -21,6 +21,7 @@
   // value the axis stops growing and the panel is labelled instead.
   const AMP_DISPLAY_LIMIT = 20.0;
   const POINT_TOL = 1e-9;
+  const STRAIN_VIEW = 0.5;  // s before t_c shown when the strain panel opens
 
   // NumPy semantics: min/max/ptp of an array containing NaN are NaN.
   function ptp(a) {
@@ -204,6 +205,39 @@
     return frequencyFigure(r, r.phase, "Φ<sub>RP</sub> − Φ<sub>NP</sub> (rad)", [-3.25, 0.75], 4);
   }
 
+  // Time-domain strain h(t) for RP and NP (webapp/time_domain.py). No Python counterpart yet:
+  // the Dash app has no time-domain view.
+  function strainFigure(r) {
+    let peak = 0;
+    for (const a of [r.h_RP, r.h_NP]) for (const v of a) if (isFinite(v)) peak = Math.max(peak, Math.abs(v));
+    // Plot in units of a power of ten so the axis reads e.g. 4 rather than 4e−23.
+    const exp = peak > 0 ? Math.floor(Math.log10(peak)) : 0;
+    const scale = 10 ** -exp;
+    const scaled = (a) => Array.from(a, (v) => v * scale);
+    const unit = exp ? ` (10<sup>${exp < 0 ? "−" : ""}${Math.abs(exp)}</sup>)` : "";
+
+    const layout = baseLayout("t − t<sub>c</sub> (s)", "strain h" + unit);
+    layout.shapes.push({ type: "line", xref: "x domain", x0: 0, x1: 1, yref: "y", y0: 0, y1: 0,
+                         line: { color: AXIS, width: 1 }, layer: "below" });
+    const t = Array.from(r.t);
+    const data = [
+      { type: "scatter", x: t, y: scaled(r.h_NP), mode: "lines", name: "NP",
+        line: { color: REF_COLOR, width: 1.2 }, opacity: 0.55,
+        hovertemplate: "NP: %{y:.4f}<extra></extra>" },
+      { type: "scatter", x: t, y: scaled(r.h_RP), mode: "lines", name: "RP",
+        line: { color: RP_COLOR, width: 1.3 },
+        hovertemplate: "RP: %{y:.4f}<extra></extra>" },
+    ];
+    const lim = 1.08 * peak * scale || 1;
+    // Open on the last STRAIN_VIEW seconds, where RP and NP visibly separate; the range bar shows it all.
+    Object.assign(layout.xaxis, { range: [Math.max(t[0], -STRAIN_VIEW), t[t.length - 1]], hoverformat: ".4f",
+                                  rangeslider: { visible: true, thickness: 0.1, bgcolor: "#f8f9fb", bordercolor: AXIS, borderwidth: 1 } });
+    layout.yaxis.range = [-lim, lim];
+    layout.margin = { l: 62, r: 18, t: 14, b: 40 };
+    layout.hovermode = "x unified";
+    return { data, layout };
+  }
+
   // Axis-less figure used before the first computation and in empty/error states.
   function placeholderFigure(message) {
     const layout = { paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
@@ -227,6 +261,6 @@
 
   window.RPFigures = {
     AMP_DISPLAY_LIMIT, isPoint, isFlatZero, ampPeak, formatG,
-    modulationFigure, amplitudeFigure, phaseFigure, placeholderFigure, graphConfig,
+    modulationFigure, amplitudeFigure, phaseFigure, strainFigure, placeholderFigure, graphConfig,
   };
 })();

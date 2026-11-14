@@ -44,9 +44,16 @@
 
         <section id="results" class="results" aria-label="Results">
           <div class="results-bar">
-            <div class="legend">
-              <span class="legend-item"><i class="key key-rp" aria-hidden="true"></i>Regular precession (RP)</span>
-              <span class="legend-item"><i class="key key-j" aria-hidden="true"></i>J direction</span>
+            <div class="results-lead">
+              <div class="domain-switch" role="group" aria-label="Waveform domain">
+                <button type="button" data-domain="frequency" aria-pressed="true">Frequency</button>
+                <button type="button" data-domain="time" aria-pressed="false">Time</button>
+              </div>
+              <div class="legend">
+                <span class="legend-item"><i class="key key-rp" aria-hidden="true"></i>Regular precession (RP)</span>
+                <span class="legend-item td-only" hidden><i class="key key-np" aria-hidden="true"></i>Non-precessing (NP)</span>
+                <span class="legend-item"><i class="key key-j" aria-hidden="true"></i>J direction</span>
+              </div>
             </div>
             <div class="results-actions">
               <span id="status" class="status" role="status"></span>
@@ -82,19 +89,26 @@
                 </header>
                 <div id="stats" class="stats"></div>
               </article>
-              <article class="plot-card">
+              <article class="plot-card fd-only">
                 <header class="plot-head">
                   <h3 class="plot-title">Amplitude</h3>
                   <p class="plot-subtitle">Fractional change relative to the non-precessing signal</p>
                 </header>
                 <div class="plot-frame"><div id="amp-graph" class="graph"></div></div>
               </article>
-              <article class="plot-card">
+              <article class="plot-card fd-only">
                 <header class="plot-head">
                   <h3 class="plot-title">Phase</h3>
                   <p class="plot-subtitle">Phase difference relative to the non-precessing signal</p>
                 </header>
                 <div class="plot-frame"><div id="phase-graph" class="graph"></div></div>
+              </article>
+              <article class="plot-card plot-wide td-only" hidden>
+                <header class="plot-head">
+                  <h3 class="plot-title">Strain</h3>
+                  <p class="plot-subtitle">Detector strain h(t) of the precessing and non-precessing signals. Opens on the last 0.5 s; drag the range bar to see the whole signal</p>
+                </header>
+                <div class="plot-frame plot-frame-tall"><div id="strain-graph" class="graph"></div></div>
               </article>
             </div>
           </div>
@@ -120,6 +134,12 @@
                     polarization phase plus twice the precession correction δφ, with the sign used by the
                     original app.</li>
               </ul>
+              <p><b>Time domain:</b> the strain panel shows h(t), the inverse Fourier transform of the
+                 frequency-domain detector strain h̃(f) = B(f) e<sup>i(Ψ − φ<sub>P</sub> − 2δφ)</sup> on the same
+                 frequency grid, for RP and NP. Ψ is the 2PN orbital phase with t<sub>c</sub> = φ<sub>c</sub> = 0,
+                 so the signal reaches the cut-off frequency at t = 0. The band edges are tapered with a Tukey
+                 window (α = 0.1) so the sharp start at 20 Hz and cut-off at f<sub>cut</sub> don't ring. The
+                 modulation of L and the system properties are the same in both views.</p>
               <p>Frequencies run from 20 Hz up to the cut-off f<sub>cut</sub> = 1/(6<sup>3/2</sup> π M<sub>z</sub>)
                  in steps of 0.05 Hz. Distances use flat ΛCDM with Planck 2018 parameters (H<sub>0</sub> = 67.4,
                  Ω<sub>m</sub> = 0.315). Plots open on the original app's axis windows and extend them when the
