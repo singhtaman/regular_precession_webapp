@@ -9,7 +9,8 @@ presentation choices:
   at F_MIN and cut-off at f_cut don't ring in the time domain.
 * The transform uses the model's Fourier convention (Cutler & Flanagan 1994,
   h̃(f) = ∫ h(t) e^{2πift} dt), so h(t) = 2 Re ∫₀^∞ h̃(f) e^{−2πift} df.
-* With t_c = 0 the signal ends at t = 0 (the cut-off frequency); the window covers
+* With t_c = 0, t = 0 is the coalescence time; the signal reaches f_cut a few ms earlier
+  (t(f) = (1/2π) dΨ/df, see sphere.py). The window covers
   1/DELTA_F = 20 s, from −(20 s − POST_TC) to POST_TC.
 """
 from dataclasses import dataclass

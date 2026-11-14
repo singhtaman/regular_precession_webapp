@@ -12,7 +12,8 @@ the browser, so it can be hosted on GitHub Pages next to the Vercel app.
 ## How it works
 
 - `pages/worker.js` starts Pyodide in a Web Worker, copies in `regular_precession_no_match.py`,
-  `systems_lib.py`, `webapp/params.py` and `webapp/physics.py` unchanged, and calls them
+  `systems_lib.py`, `webapp/params.py` and `webapp/physics.py` unchanged (plus the browser-only
+  `webapp/time_domain.py` and `webapp/sphere.py`), and calls them
   through `pages/rp_page.py`. Files are fetched one at a time with retries: Python's
   `http.server` refuses bursts of parallel connections, which showed up as "Failed to fetch".
 - `pages/app.js` builds the controls from `webapp/params.py` and mirrors `webapp/callbacks.py`
@@ -32,7 +33,8 @@ and the system properties are unchanged. `webapp/time_domain.py` computes it:
   (20 Hz to f_cut, Δf = 0.05 Hz, so a 20 s window).
 - Tukey taper, α = 0.1 (5% of the band at each edge), so the sharp start and cut-off don't ring.
 - Inverse FFT in the model's Fourier convention (Cutler & Flanagan 1994, h̃(f) = ∫ h(t) e^{2πift} dt):
-  h(t) = 2 Re ∫₀^∞ h̃(f) e^{−2πift} df. t_c = 0, so the signal reaches f_cut at t = 0.
+  h(t) = 2 Re ∫₀^∞ h̃(f) e^{−2πift} df. t_c = 0, so t = 0 is the coalescence time; the signal reaches f_cut a few ms earlier
+  (4.4 ms at the defaults, from t(f) = (1/2π) dΨ/df).
 - Sampling rate: the smallest power of two with ≥ 6 samples per cycle at f_cut (1024 Hz at the
   defaults). The plot opens on the last 0.5 s; a range bar shows the whole signal.
 - The export in the time view has columns t_s, h_RP, h_NP.
@@ -42,6 +44,39 @@ signal lengths are 3.5 s at the defaults and 12.7 s for the longest slider setti
 q = 1, z = 0.05), inside the 20 s window; a forward FFT of h(t) recovers the tapered h̃(f) in band
 to 0.1–0.4% (the remainder is the near-zero stretch before the signal, which the plot omits).
 There is no Dash/Vercel version of this view yet.
+
+### Sphere: L, the orbital plane and N about J
+
+A rotatable unit sphere next to the modulation of L, shown only in the time view (the system
+properties move below the strain panel there). `webapp/sphere.py` computes it from the unmodified
+class on the same frequency grid:
+
+- Frame: z = J (north pole), x = the axis from which the model measures φ_LJ.
+  L(f) = (sin θ_LJ cos φ_LJ, sin θ_LJ sin φ_LJ, cos θ_LJ) with `get_theta_LJ(f)`, `get_phi_LJ(f)`.
+- Blue band: polar angles from min to max θ_LJ (20 Hz to f_cut); blue curve: the path of L.
+- Orange band: latitudes within ±max θ_LJ of the equator, swept by the orbital plane (the great
+  circle perpendicular to L, tilted by θ_LJ). Where the bands overlap (max θ_LJ > π/4, i.e.
+  θ̃ ≳ 7.9) the overlap is purple and a "Both bands" key appears.
+- N̂ = (0, sin ι_JN, cos ι_JN) with cos/sin ι_JN from `precession_angles()`: a dot on the sphere
+  and an arrow. This is the direction implied by the model's `LdotN(f)` =
+  sin θ_LJ sin ι_JN sin φ_LJ + cos θ_LJ cos ι_JN; `directions()` returns max |L·N − LdotN| on every
+  call (`sp_ldotn_error`).
+- Linked to time: hovering over (or tapping) the strain plot moves the L marker, its arrow and the
+  orbital-plane great circle to that time. Time → frequency uses the stationary-phase relation of
+  the model's orbital phase, t(f) = (1/2π) dΨ/df with Ψ = `Regular_precession.Psi` (t_c = 0),
+  differentiated numerically on the grid (`np.gradient`); the page inverts t(f) by binary search
+  and interpolates f, θ_LJ, φ_LJ linearly between grid points. Times outside
+  [t(20 Hz), t(f_cut)] show no marker. Before any hover the marker is at 20 Hz.
+- Plotly's 3D traces are not in plotly-basic, so `app.js` loads the cdnjs plotly.js 3.1.0 gl3d
+  bundle (1.6 MB) the first time the time view opens, keeps it as a separate instance for the
+  sphere only, and restores `window.Plotly` to the basic bundle.
+
+Checks (14 Nov): L·N − LdotN ≤ 2.2×10⁻¹⁶ over 45 parameter sets (defaults, extremes, 40 random;
+one random set had no band); t(f) strictly increasing in all of them. The strain's own zero-crossing
+frequency at t(f) is 24.95, 40.18 and 81.76 Hz for f = 25, 40 and 80 Hz (defaults). In Chromium and
+WebKit, the marker after hovering at four in-band times matches the model's L at the marker's
+frequency to ≤ 4×10⁻⁶ and sits within half a strain sample (< 0.5 ms) of the hovered point; out-of-band
+times hide the marker.
 
 The first visit downloads about 32 MB (Python, NumPy, SciPy, Astropy) and is ready in about
 8 seconds on a fast connection; the browser caches it for later visits. Each update then takes

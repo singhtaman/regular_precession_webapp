@@ -12,15 +12,16 @@ import numpy as np
 
 from webapp.params import BY_ID, CALL_ORDER, GROUPS, PRESETS
 
-physics = None      # webapp.physics and webapp.time_domain, imported by load_model()
-time_domain = None  # once SciPy and Astropy are loaded
+physics = None      # webapp.physics, webapp.time_domain and webapp.sphere,
+time_domain = None  # imported by load_model() once SciPy and Astropy are loaded
+sphere = None
 
 
 def load_model():
     """Import the model; returns the frequency-grid constants."""
-    global physics, time_domain
-    from webapp import physics as p, time_domain as td
-    physics, time_domain = p, td
+    global physics, time_domain, sphere
+    from webapp import physics as p, time_domain as td, sphere as sp
+    physics, time_domain, sphere = p, td, sp
     return json.dumps({"fMin": physics.F_MIN, "deltaF": physics.DELTA_F,
                        "taperAlpha": time_domain.TAPER_ALPHA})
 
@@ -57,7 +58,8 @@ def _f64(a):
 def evaluate(values, domain="frequency"):
     """Validate, then compute derived quantities and the RP/NP comparison for values (CALL_ORDER).
 
-    In the time domain the result also holds h(t) for RP and NP (webapp.time_domain).
+    In the time domain the result also holds h(t) for RP and NP (webapp.time_domain) and the
+    J-frame directions of L and N with the time map t(f) (webapp.sphere).
     """
     msg = _validate(values)
     if msg:
@@ -80,10 +82,14 @@ def evaluate(values, domain="frequency"):
     if domain == "time" and r.f.size:
         try:
             td = time_domain.strain(*values)
+            sp = sphere.directions(*values)
         except Exception as exc:
             out["error"] = f"{type(exc).__name__}: {exc}"
             return out
         out.update(t=_f64(td.t), h_RP=_f64(td.h_RP), h_NP=_f64(td.h_NP), fs=td.fs, nt=int(td.t.size))
+        out.update(sp_t=_f64(sp.t), sp_theta=_f64(sp.theta_LJ), sp_phi=_f64(sp.phi_LJ),
+                   sp_N=[float(v) for v in sp.N], sp_ldotn_error=sp.ldotn_error,
+                   sp_t_monotonic=sp.t_monotonic)
     return out
 
 

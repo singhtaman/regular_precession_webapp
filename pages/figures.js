@@ -238,6 +238,164 @@
     return { data, layout };
   }
 
+  // ---------- J-frame sphere (webapp/sphere.py) ----------
+  // Unit sphere with J at the north pole: the band of polar angles L passes through, L's path,
+  // the band of latitudes swept by the orbital plane (perpendicular to L), N̂, and a marker for
+  // L and its orbital plane at one time. Needs the gl3d Plotly bundle. No Python counterpart.
+  const SPHERE = {
+    base: "#eef1f6", lBand: "#bfd1f6", orbitBand: "#f6dcae", overlap: "#d8cde6",
+    orbit: "#b36200", N: REF_COLOR, equator: "#aab3c2",
+  };
+  const S_PATH = 1.004, S_MARK = 1.012;  // radii that keep lines and markers above the surface
+  const ARROW = 1.4;                     // length of the J and N arrows (sphere radius 1)
+  const EPS = 1e-6;
+  const SPHERE_TRACE = [7, 8, 6];        // traces moved by sphereMoving: L marker, L arrow, orbital plane
+
+  function sphereBands(r) {
+    let lo = Infinity, hi = -Infinity;
+    for (const v of r.sp_theta) { if (isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
+    return { lo, hi, lBand: hi - lo > EPS, orbitBand: hi > EPS, overlap: hi > Math.PI / 2 - hi + EPS };
+  }
+
+  function unitVec(theta, phi) {
+    return [Math.sin(theta) * Math.cos(phi), Math.sin(theta) * Math.sin(phi), Math.cos(theta)];
+  }
+
+  function scaled3(v, s) { return [v[0] * s, v[1] * s, v[2] * s]; }
+
+  // Sphere surface coloured by band; rows are added at the band edges so the edges are sharp.
+  function sphereSurface(b) {
+    const rows = new Set();
+    for (let i = 0; i <= 90; i++) rows.add(i * Math.PI / 90);
+    const edges = [];
+    if (b.lBand) edges.push(b.lo, b.hi);
+    if (b.orbitBand) edges.push(Math.PI / 2 - b.hi, Math.PI / 2 + b.hi);
+    for (const e of edges) for (const d of [-EPS, EPS]) rows.add(Math.min(Math.PI, Math.max(0, e + d)));
+    const thetas = [...rows].sort((a, c) => a - c);
+    const nPhi = 73;
+    const x = [], y = [], z = [], c = [];
+    for (const th of thetas) {
+      const inL = b.lBand && th >= b.lo && th <= b.hi;
+      const inO = b.orbitBand && Math.abs(Math.PI / 2 - th) <= b.hi;
+      const cat = (inL ? 1 : 0) + (inO ? 2 : 0);
+      const xr = [], yr = [], zr = [], cr = [];
+      for (let j = 0; j < nPhi; j++) {
+        const ph = j * 2 * Math.PI / (nPhi - 1);
+        xr.push(Math.sin(th) * Math.cos(ph)); yr.push(Math.sin(th) * Math.sin(ph)); zr.push(Math.cos(th)); cr.push(cat);
+      }
+      x.push(xr); y.push(yr); z.push(zr); c.push(cr);
+    }
+    return {
+      type: "surface", x, y, z, surfacecolor: c, cmin: 0, cmax: 3, showscale: false, hoverinfo: "skip",
+      colorscale: [[0, SPHERE.base], [1 / 3, SPHERE.lBand], [2 / 3, SPHERE.orbitBand], [1, SPHERE.overlap]],
+      lighting: { ambient: 0.8, diffuse: 0.35, specular: 0.05, roughness: 1, fresnel: 0 },
+      contours: { x: { highlight: false }, y: { highlight: false }, z: { highlight: false } },
+    };
+  }
+
+  function line3d(points, color, width, name) {
+    return { type: "scatter3d", mode: "lines", name, hoverinfo: "skip", showlegend: false,
+             x: points.map((p) => p[0]), y: points.map((p) => p[1]), z: points.map((p) => p[2]),
+             line: { color, width } };
+  }
+
+  // Great circle perpendicular to the unit vector L (the orbital plane), at radius S_PATH.
+  function orbitCircle(L) {
+    let e1 = [L[1], -L[0], 0];  // L × z
+    const n = Math.hypot(e1[0], e1[1]);
+    e1 = n > 1e-9 ? [e1[0] / n, e1[1] / n, 0] : [1, 0, 0];
+    const e2 = [L[1] * e1[2] - L[2] * e1[1], L[2] * e1[0] - L[0] * e1[2], L[0] * e1[1] - L[1] * e1[0]];
+    const pts = [];
+    for (let k = 0; k <= 120; k++) {
+      const s = k * 2 * Math.PI / 120;
+      pts.push([0, 1, 2].map((i) => S_PATH * (Math.cos(s) * e1[i] + Math.sin(s) * e2[i])));
+    }
+    return pts;
+  }
+
+  // State of L at time t: t(f) is increasing, so invert it by binary search and interpolate
+  // f, θ_LJ and φ_LJ linearly between grid frequencies. null outside [t(20 Hz), t(f_cut)].
+  function sphereAt(r, t) {
+    const ts = r.sp_t, n = ts ? ts.length : 0;
+    if (!n || !r.sp_t_monotonic || !(t >= ts[0] && t <= ts[n - 1])) return null;
+    let lo = 0, hi = n - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (ts[mid] <= t) lo = mid; else hi = mid; }
+    const w = hi > lo ? (t - ts[lo]) / (ts[hi] - ts[lo]) : 0;
+    const lerp = (a) => a[lo] + w * (a[hi] - a[lo]);
+    return { t, f: lerp(r.f), theta: lerp(r.sp_theta), phi: lerp(r.sp_phi) };
+  }
+
+  // Coordinates for the traces in SPHERE_TRACE at state s (empty when s is null).
+  function sphereMoving(s) {
+    if (!s) return { x: [[], [], []], y: [[], [], []], z: [[], [], []] };
+    const L = unitVec(s.theta, s.phi);
+    const m = scaled3(L, S_MARK), a1 = scaled3(L, 1.3);
+    const c = orbitCircle(L);
+    return {
+      x: [[m[0]], [L[0], a1[0]], c.map((p) => p[0])],
+      y: [[m[1]], [L[1], a1[1]], c.map((p) => p[1])],
+      z: [[m[2]], [L[2], a1[2]], c.map((p) => p[2])],
+    };
+  }
+
+  function sphereFigure(r, s) {
+    const b = sphereBands(r);
+    const N = r.sp_N;
+    // L's path; long signals are thinned to at most ~8000 points.
+    const stride = Math.max(1, Math.ceil(r.sp_theta.length / 8000));
+    const path = [];
+    for (let i = 0; i < r.sp_theta.length; i += stride) path.push(scaled3(unitVec(r.sp_theta[i], r.sp_phi[i]), S_PATH));
+    const last = r.sp_theta.length - 1;
+    if (last % stride) path.push(scaled3(unitVec(r.sp_theta[last], r.sp_phi[last]), S_PATH));
+
+    const equator = [];
+    for (let k = 0; k <= 120; k++) { const a = k * 2 * Math.PI / 120; equator.push([Math.cos(a), Math.sin(a), 0]); }
+
+    const mv = sphereMoving(s);
+    const tipN = scaled3(N, ARROW);
+    const data = [
+      sphereSurface(b),                                                         // 0
+      line3d(equator, SPHERE.equator, 1.5, "Equator"),                          // 1
+      line3d(path, RP_COLOR, 4, "Path of L"),                                   // 2
+      line3d([[0, 0, 1], [0, 0, ARROW]], J_COLOR, 7, "J"),                      // 3
+      line3d([N, scaled3(N, ARROW - 0.12)], SPHERE.N, 6, "N"),                  // 4
+      { type: "cone", x: [tipN[0]], y: [tipN[1]], z: [tipN[2]], u: [N[0]], v: [N[1]], w: [N[2]],  // 5
+        anchor: "tip", sizemode: "absolute", sizeref: 0.16, showscale: false, hoverinfo: "skip",
+        colorscale: [[0, SPHERE.N], [1, SPHERE.N]], lighting: { ambient: 0.9, diffuse: 0.2 } },
+      { type: "scatter3d", mode: "lines", hoverinfo: "skip", showlegend: false, name: "Orbital plane now",  // 6
+        x: mv.x[2], y: mv.y[2], z: mv.z[2], line: { color: SPHERE.orbit, width: 5 } },
+      { type: "scatter3d", mode: "markers+text", hoverinfo: "skip", showlegend: false, name: "L now",       // 7
+        x: mv.x[0], y: mv.y[0], z: mv.z[0], text: ["L"], textposition: "top center",
+        textfont: { color: RP_COLOR, size: 14, family: FONT },
+        marker: { color: RP_COLOR, size: 6, line: { color: "#ffffff", width: 1 } } },
+      { type: "scatter3d", mode: "lines", hoverinfo: "skip", showlegend: false, name: "L arrow",           // 8
+        x: mv.x[1], y: mv.y[1], z: mv.z[1], line: { color: RP_COLOR, width: 7 } },
+      { type: "scatter3d", mode: "markers+text", hoverinfo: "skip", showlegend: false, name: "Labels",     // 9
+        x: [0, N[0] * S_MARK, tipN[0] * 1.1], y: [0, N[1] * S_MARK, tipN[1] * 1.1], z: [1, N[2] * S_MARK, tipN[2] * 1.1],
+        text: ["", "", "N"], textposition: "middle center", textfont: { color: SPHERE.N, size: 14, family: FONT },
+        marker: { color: [J_COLOR, SPHERE.N, "rgba(0,0,0,0)"], size: [6, 6, 1] } },
+      { type: "scatter3d", mode: "text", hoverinfo: "skip", showlegend: false, name: "J label",            // 10
+        x: [0], y: [0], z: [ARROW + 0.12], text: ["J"], textfont: { color: J_COLOR, size: 14, family: FONT } },
+    ];
+    const hidden = { visible: false, showspikes: false, range: [-1.55, 1.55] };
+    // Camera 35° in azimuth from N (which lies in the y–z plane) and 28° above the equator, J up.
+    const az = Math.atan2(N[1], N[0]) - 35 * Math.PI / 180, el = 28 * Math.PI / 180, dist = 1.3;
+    const layout = {
+      font: { family: FONT, size: 12, color: TEXT },
+      paper_bgcolor: "rgba(0,0,0,0)",
+      margin: { l: 0, r: 0, t: 0, b: 0 },
+      showlegend: false,
+      autosize: true,
+      uirevision: "keep",
+      scene: {
+        xaxis: hidden, yaxis: hidden, zaxis: hidden, aspectmode: "cube", hovermode: false, dragmode: "orbit",
+        camera: { eye: { x: dist * Math.cos(el) * Math.cos(az), y: dist * Math.cos(el) * Math.sin(az), z: dist * Math.sin(el) },
+                  up: { x: 0, y: 0, z: 1 }, center: { x: 0, y: 0, z: 0 } },
+      },
+    };
+    return { data, layout, bands: b };
+  }
+
   // Axis-less figure used before the first computation and in empty/error states.
   function placeholderFigure(message) {
     const layout = { paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
@@ -262,5 +420,6 @@
   window.RPFigures = {
     AMP_DISPLAY_LIMIT, isPoint, isFlatZero, ampPeak, formatG,
     modulationFigure, amplitudeFigure, phaseFigure, strainFigure, placeholderFigure, graphConfig,
+    sphereFigure, sphereAt, sphereMoving, SPHERE, SPHERE_TRACE,
   };
 })();

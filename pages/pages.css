@@ -101,6 +101,41 @@
 .plot-wide { grid-column: 1 / -1; }
 .plot-frame-tall { height: 460px; }
 
+/* J-frame sphere: in the time view it sits next to the modulation of L, just above the strain
+   plot it is linked to; the system properties move below. */
+.plot-grid.is-time .plot-card { order: 4; }
+.plot-grid.is-time .plot-card:first-child { order: 1; }
+.plot-grid.is-time .sphere-card { order: 2; }
+.plot-grid.is-time .plot-wide { order: 3; }
+
+.plot-frame-sphere { height: 380px; touch-action: none; }
+.sphere-readout {
+  min-height: 1.5em;
+  margin: 0;
+  padding: 0 var(--space-4);
+  font: 12px/1.5 var(--mono);
+  color: var(--text-2);
+}
+.sphere-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--space-4);
+  margin: 0;
+  padding: var(--space-2) var(--space-4) var(--space-4);
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.sphere-key li { display: inline-flex; align-items: center; gap: 6px; }
+.sphere-key li[hidden] { display: none; }
+.swatch { display: inline-block; width: 14px; height: 10px; border-radius: 2px; border: 1px solid rgba(29, 36, 51, 0.25); }
+.swatch-l { background: #bfd1f6; }
+.swatch-orbit { background: #f6dcae; }
+.swatch-both { background: #d8cde6; }
+.key-orbit { border-top: 2.5px solid #b36200; }
+.key-n { border-top: 2.5px solid #1d2433; }
+
 @media (max-width: 559px) {
   .plot-frame-tall { height: 400px; }
+  .plot-frame-sphere { height: 330px; }
 }

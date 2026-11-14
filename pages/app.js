@@ -22,6 +22,16 @@
   let domain = "frequency";  // "frequency" | "time": which result panels are shown
   let busy = false, pending = null, runId = 0;
 
+  // The J-frame sphere needs Plotly's 3D traces, which plotly-basic lacks. The gl3d bundle (1.6 MB)
+  // is loaded the first time the Time view opens. It also defines window.Plotly, so the basic
+  // build is put back afterwards and the two are kept apart: Plot3D draws only the sphere.
+  const GL3D = "https://cdnjs.cloudflare.com/ajax/libs/plotly.js/3.1.0/plotly-gl3d.min.js";
+  const sphereEl = $("#sphere-graph");
+  let Plot3D = null, gl3dLoading = null;
+  let timeResult = null;     // last time-domain result, for the sphere
+  let sphereTime = null;     // time shown on the sphere (null: start of the signal)
+  let sphereDrawn = false, sphereFrame = 0;
+
   // ---------- Small helpers ----------
 
   function h(tag, attrs = {}, ...children) {
@@ -185,6 +195,8 @@
     document.querySelectorAll(".domain-switch button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.domain === d)));
     document.querySelectorAll(".fd-only").forEach((el) => { el.hidden = d !== "frequency"; });
     document.querySelectorAll(".td-only").forEach((el) => { el.hidden = d !== "time"; });
+    $("#plot-grid").classList.toggle("is-time", d === "time");
+    if (d === "time") loadGl3d();
     schedule();
   }
 
@@ -197,6 +209,91 @@
 
   function blank(message) {
     for (const key of Object.keys(graphs)) draw(key, F.placeholderFigure(message));
+    timeResult = null;
+    clearSphere("");  // the notice above the plots explains the empty state
+  }
+
+  // ---------- J-frame sphere (time view) ----------
+
+  function loadGl3d() {
+    if (!gl3dLoading) {
+      gl3dLoading = new Promise((resolve, reject) => {
+        const basic = window.Plotly;
+        const s = document.createElement("script");
+        s.src = GL3D;
+        s.onload = () => { Plot3D = window.Plotly; window.Plotly = basic; resolve(); };
+        s.onerror = () => { window.Plotly = basic; reject(new Error("Could not download the 3D plotting library")); };
+        document.head.append(s);
+      }).then(() => { if (timeResult) drawSphere(timeResult); },
+              (err) => { gl3dLoading = null; clearSphere(err.message + "; reload the page to try again."); });
+    }
+    return gl3dLoading;
+  }
+
+  function clearSphere(message) {
+    if (Plot3D && sphereDrawn) Plot3D.purge(sphereEl);
+    sphereDrawn = false;
+    $("#sphere-readout").textContent = message || "";
+  }
+
+  function fmt(v, d) { return v.toFixed(d).replace("-", "−"); }
+
+  function sphereReadout(r, s, requested) {
+    const el = $("#sphere-readout");
+    if (!r.sp_t_monotonic) {
+      el.textContent = "The time map t(f) is not monotonic for these parameters, so the sphere is not linked to the strain plot.";
+    } else if (!s) {
+      el.replaceChildren(`t − t`, h("sub", {}, "c"), ` = ${fmt(requested, 3)} s is outside the band `
+        + `(${fmt(r.sp_t[0], 3)} to ${fmt(r.sp_t[r.sp_t.length - 1], 4)} s), so no L is marked.`);
+    } else {
+      const twoPi = 2 * Math.PI, phiMod = ((s.phi % twoPi) + twoPi) % twoPi;
+      el.replaceChildren(`t − t`, h("sub", {}, "c"), ` = ${fmt(s.t, 3)} s · f = ${s.f.toFixed(2)} Hz · θ`, h("sub", {}, "LJ"),
+        ` = ${s.theta.toFixed(3)} rad · φ`, h("sub", {}, "LJ"), ` = ${phiMod.toFixed(3)} rad (mod 2π)`);
+    }
+  }
+
+  function stateAt(r) {
+    const t = sphereTime === null ? r.sp_t[0] : sphereTime;
+    return [F.sphereAt(r, t), t];
+  }
+
+  function drawSphere(r) {
+    if (!Plot3D || domain !== "time") return;
+    const [s, t] = stateAt(r);
+    const fig = F.sphereFigure(r, s);
+    Plot3D.react(sphereEl, fig.data, fig.layout,
+                 { ...F.graphConfig("rp_sphere"), modeBarButtonsToRemove: ["resetCameraLastSave3d", "hoverClosest3d"] });
+    sphereDrawn = true;
+    $("#sphere-key-overlap").hidden = !fig.bands.overlap;
+    sphereReadout(r, s, t);
+  }
+
+  // Move the L marker and orbital plane to time t (from hovering or tapping the strain plot).
+  function moveSphere(t) {
+    sphereTime = t;
+    if (!timeResult || !sphereDrawn || sphereFrame) return;
+    sphereFrame = requestAnimationFrame(() => {
+      sphereFrame = 0;
+      const r = timeResult;
+      if (!r || !sphereDrawn) return;
+      const [s, t2] = stateAt(r);
+      const mv = F.sphereMoving(s);
+      Plot3D.restyle(sphereEl, mv, F.SPHERE_TRACE);
+      sphereReadout(r, s, t2);
+    });
+  }
+
+  let strainLinked = false;
+  function linkStrain() {
+    if (strainLinked) return;
+    strainLinked = true;
+    const el = graphs.strain.el;
+    const pick = (e) => {
+      const x = e && (e.xvals ? e.xvals[0] : e.points && e.points[0] && e.points[0].x);
+      if (typeof x === "number" && isFinite(x)) moveSphere(x);
+    };
+    el.on("plotly_hover", pick);
+    el.on("plotly_click", pick);
   }
 
   function notice(kind, title, body) {
@@ -283,6 +380,9 @@
     draw("mod", F.modulationFigure(r));
     if (time) {
       draw("strain", F.strainFigure(r));
+      linkStrain();
+      timeResult = r;
+      if (Plot3D) drawSphere(r); else $("#sphere-readout").textContent = "Loading the 3D view…";
     } else {
       draw("amp", F.amplitudeFigure(r));
       draw("phase", F.phaseFigure(r));

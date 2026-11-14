@@ -14,6 +14,7 @@ const SOURCES = [
   "webapp/params.py",
   "webapp/physics.py",
   "webapp/time_domain.py",
+  "webapp/sphere.py",
   "rp_page.py",
 ];
 
@@ -67,7 +68,7 @@ async function init() {
 
 function run(values, domain) {
   const res = bridge.evaluate(values, domain).toJs({ dict_converter: Object.fromEntries });
-  for (const key of ["f", "phi_L", "cos_L", "amp", "phase", "t", "h_RP", "h_NP"]) {
+  for (const key of ["f", "phi_L", "cos_L", "amp", "phase", "t", "h_RP", "h_NP", "sp_t", "sp_theta", "sp_phi"]) {
     if (res[key]) res[key] = f64(res[key]);
   }
   return res;

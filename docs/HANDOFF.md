@@ -11,16 +11,18 @@ website and the Regular Precession app, what state each is in, and what is left.
 |---|---|---|---|
 | `main` | Original Render app (`RP_map_all_app.py`) | Render | untouched |
 | `feature/vercel-ui` | Redesigned Dash app (`app.py` → `webapp/`) | **Vercel production on every push** | untouched |
-| `feature/github-pages` | Browser version (`pages/`) + time-domain view | GitHub Pages, once set up | **3 commits, local only, not pushed** |
+| `feature/github-pages` | Browser version (`pages/`) + time-domain view + J-frame sphere | GitHub Pages, once set up | **5 commits, local only, not pushed** |
 
 `feature/github-pages` is based on `feature/vercel-ui`:
 
 - `660cad1` Add a browser version for GitHub Pages
 - `ca03426` Rename the Pyodide bridge module (`bridge.py` → `rp_page.py`)
 - `64fbcbe` Add a frequency/time switch with a time-domain strain panel
+- `d589749` Add handoff record for the website and browser-version work
+- (14 Nov, 05:30 scheduled run) Add the J-frame sphere to the time view
 
-None of the existing files (the physics, `webapp/*.py` except the new `time_domain.py`, the
-Dash app, `vercel.json`, the tests) were changed; `.gitignore` gained `_site/`.
+None of the existing files (the physics, `webapp/*.py` except the new `time_domain.py` and
+`sphere.py`, the Dash app, `vercel.json`, the tests) were changed; `.gitignore` gained `_site/`.
 
 ### What the browser version is
 
@@ -44,6 +46,16 @@ First load ≈32 MB and ≈8 s; each update 20–45 ms.
   3.5 s (defaults) to 12.7 s (longest slider setting) fit the 20 s window; forward FFT recovers
   the tapered h̃(f) to 0.1–0.4% (loss = trimmed pre-signal stretch).
 
+- **J-frame sphere** (time view; details in `docs/github-pages.md`): L·N̂ with
+  N̂ = (0, sin ι_JN, cos ι_JN) equals the model's `LdotN` to ≤ 2.2×10⁻¹⁶ (45 parameter sets);
+  t(f) = (1/2π) dΨ/df is strictly increasing in all of them and matches the strain's own
+  zero-crossing frequency (24.95/40.18/81.76 Hz at f = 25/40/80 Hz). In Chromium and WebKit:
+  gl3d loads only when Time is first opened, hovering the strain plot moves the marker (L within
+  4×10⁻⁶ of the model at the marker's frequency, < 0.5 ms from the hovered sample), out-of-band
+  times hide it, overlap key appears at θ̃ = 10, frequency view and both CSV exports unchanged,
+  390 px phone width without horizontal scroll, no console errors (Chromium prints WebGL
+  "GPU stall due to ReadPixels" performance warnings from Plotly's 3D picking).
+
 ### Not verified
 
 - The repository's pytest suite (needs Python 3.12; not installed on this Mac). No file it tests
@@ -63,6 +75,25 @@ harmless and was kept.
 `webapp/time_domain.py`: Tukey taper α = 0.1; t_c = 0 at f_cut; 0.25 s shown after t_c and
 0.25 s before the signal; sampling rate = smallest power of two with ≥ 6 samples/cycle at f_cut;
 the panel opens on the last 0.5 s. These are presentation choices; the model is unchanged.
+
+### Sphere choices made in the unattended run (review these)
+
+The user chose: rotatable sphere, J at the north pole, orbit band = orbital-plane sweep, linked to
+time. Decided without sign-off:
+
+- Placement: in the time view the sphere sits beside the modulation of L, directly above the
+  strain plot; the system properties card moves below the strain (CSS `order`, time view only).
+- Before any hover the marker sits at 20 Hz; the last hovered time is kept when sliders change.
+- Colours: L band light blue `#bfd1f6`, orbit band light orange `#f6dcae`, overlap purple
+  `#d8cde6`, orbital plane `#b36200`, N̂ dark `#1d2433`; the sphere base is light grey.
+- N̂ is drawn as a dot plus an arrow outward from the sphere (the sphere is opaque, so an arrow
+  from the centre would be hidden); the WebGL label reads "N" because the combining hat rendered
+  badly. The camera opens 35° in azimuth from N̂ and 28° above the equator.
+- The path of L is thinned to ≤ 8000 points for drawing; θ_LJ, φ_LJ at a time are linear
+  interpolations between 0.05 Hz grid points.
+- Wording fix in my earlier text: t = 0 is the coalescence time, and the signal reaches f_cut a
+  few ms earlier (4.4 ms at the defaults), not at t = 0 (About text, `docs/github-pages.md`,
+  `time_domain.py` docstring; no code change).
 
 ### Next steps
 
