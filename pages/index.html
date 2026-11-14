@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Interactive explorer for regularly precessing binary black hole gravitational waveforms.">
+    <meta name="theme-color" content="#ffffff">
+    <title>Regular Precession</title>
+    <link rel="icon" type="image/jpeg" href="bbh_spin.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+    <!-- style.css is the Dash app's stylesheet (webapp/assets); pages.css adapts it to native controls. -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="pages.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <a href="#results" class="skip-link">Skip to results</a>
+
+      <header class="topbar">
+        <div class="brand">
+          <img src="bbh_spin.jpg" alt="" class="brand-logo">
+          <div>
+            <h1 class="brand-title">Regular Precession</h1>
+            <p class="brand-tagline">How a precessing orbit imprints on gravitational waves from binary black holes</p>
+          </div>
+        </div>
+        <nav class="top-links">
+          <a href="https://arxiv.org/abs/2509.10628" target="_blank" rel="noopener" class="top-link" title="arXiv:2509.10628"><i class="icon icon-paper"></i><span>Paper</span></a>
+          <a href="https://github.com/singhtaman/regular_precession_webapp" target="_blank" rel="noopener" class="top-link"><i class="icon icon-code"></i><span>Source</span></a>
+          <a href="https://github.com/singhtaman" target="_blank" rel="noopener" class="top-link" title="GitHub profile"><i class="icon icon-user"></i><span>GitHub</span></a>
+          <a href="https://singhtaman.github.io/" target="_blank" rel="noopener" class="top-link" title="Personal website"><i class="icon icon-globe"></i><span>Website</span></a>
+        </nav>
+      </header>
+
+      <main class="workspace">
+        <aside class="controls" id="controls" aria-label="Parameters">
+          <div class="controls-head">
+            <h2 class="section-title">Parameters</h2>
+            <button type="button" id="reset-all" class="button button-ghost" disabled>Reset all</button>
+          </div>
+        </aside>
+
+        <section id="results" class="results" aria-label="Results">
+          <div class="results-bar">
+            <div class="legend">
+              <span class="legend-item"><i class="key key-rp" aria-hidden="true"></i>Regular precession (RP)</span>
+              <span class="legend-item"><i class="key key-j" aria-hidden="true"></i>J direction</span>
+            </div>
+            <div class="results-actions">
+              <span id="status" class="status" role="status"></span>
+              <button type="button" id="export-csv" class="button" disabled><i class="icon icon-download"></i>Export CSV</button>
+            </div>
+          </div>
+
+          <div id="loading" class="loading" role="status">
+            <span class="spinner" aria-hidden="true"></span>
+            <div>
+              <strong id="loading-step">Starting Python…</strong>
+              <p>This version runs the model in your browser. The first visit downloads Python and its
+                 scientific libraries, which takes a few seconds; later visits load from the browser cache.
+                 The <a href="https://regularprecession.vercel.app">server version</a> starts instantly.</p>
+            </div>
+          </div>
+
+          <div id="notice" class="notice is-empty" role="alert"></div>
+
+          <div class="plot-loading">
+            <div id="plot-grid" class="plot-grid">
+              <article class="plot-card">
+                <header class="plot-head">
+                  <h3 class="plot-title">Modulation of L</h3>
+                  <p class="plot-subtitle">Direction of the orbital angular momentum about J</p>
+                </header>
+                <div class="plot-frame"><div id="mod-graph" class="graph"></div></div>
+              </article>
+              <article class="plot-card stats-card">
+                <header class="plot-head">
+                  <h3 class="plot-title">System properties</h3>
+                  <p class="plot-subtitle">Derived from the source and orientation parameters</p>
+                </header>
+                <div id="stats" class="stats"></div>
+              </article>
+              <article class="plot-card">
+                <header class="plot-head">
+                  <h3 class="plot-title">Amplitude</h3>
+                  <p class="plot-subtitle">Fractional change relative to the non-precessing signal</p>
+                </header>
+                <div class="plot-frame"><div id="amp-graph" class="graph"></div></div>
+              </article>
+              <article class="plot-card">
+                <header class="plot-head">
+                  <h3 class="plot-title">Phase</h3>
+                  <p class="plot-subtitle">Phase difference relative to the non-precessing signal</p>
+                </header>
+                <div class="plot-frame"><div id="phase-graph" class="graph"></div></div>
+              </article>
+            </div>
+          </div>
+
+          <details class="about">
+            <summary>About this figure and model</summary>
+            <div class="about-body">
+              <p>Stellar binary black holes coalescing in the LIGO band can have misaligned spins. The orbital
+                 angular momentum <b>L</b> then precesses and nutates about the total angular momentum
+                 <b>J</b>, modulating the gravitational-wave signal. In <b>regular precession</b> L moves on a
+                 cone around J with no nutation, and the direction of J is nearly constant over the
+                 radiation-reaction time.</p>
+              <p>Two dimensionless parameters describe the cone in the post-Newtonian waveform: the precession
+                 amplitude θ̃ sets its opening angle, θ<sub>LJ</sub> = 0.1 θ̃ (f/f<sub>cut</sub>)<sup>1/3</sup>,
+                 and the precession frequency Ω̃ sets how fast L moves around it. The precessional phase
+                 γ<sub>P</sub> is a nuisance parameter. The panels compare a regularly precessing signal (RP,
+                 blue) with the non-precessing signal (NP) of the same source.</p>
+              <ul>
+                <li><b>Modulation of L: </b>the direction of L in the detector frame, cos θ<sub>L</sub> against
+                    φ<sub>L</sub>. The red point marks the direction of J.</li>
+                <li><b>Amplitude: </b>fractional change of the GW amplitude, B<sub>RP</sub>/B<sub>NP</sub> − 1.</li>
+                <li><b>Phase: </b>phase difference Φ<sub>RP</sub> − Φ<sub>NP</sub> in radians: the precessional
+                    polarization phase plus twice the precession correction δφ, with the sign used by the
+                    original app.</li>
+              </ul>
+              <p>Frequencies run from 20 Hz up to the cut-off f<sub>cut</sub> = 1/(6<sup>3/2</sup> π M<sub>z</sub>)
+                 in steps of 0.05 Hz. Distances use flat ΛCDM with Planck 2018 parameters (H<sub>0</sub> = 67.4,
+                 Ω<sub>m</sub> = 0.315). Plots open on the original app's axis windows and extend them when the
+                 curves would otherwise run outside.</p>
+              <p class="muted">Drag a slider or type a value; plots update when you release the handle. Use the
+                 plot toolbar to zoom, pan or save a PNG, and double-click a plot to reset its view.</p>
+              <p class="muted">This version runs the same Python model in your browser with
+                 <a href="https://pyodide.org" target="_blank" rel="noopener">Pyodide</a>. The
+                 <a href="https://regularprecession.vercel.app">server version</a> runs it on Vercel.</p>
+              <p class="reference"><b>Reference: </b>T. Singh, E. Stoikos, S. Ali, N. Steinle, M. Kesden and L. King,
+                 <i>Detecting regular precession using a new gravitational waveform model directly parameterized
+                 by both precession amplitude and frequency</i>,
+                 <a href="https://arxiv.org/abs/2509.10628" target="_blank" rel="noopener">arXiv:2509.10628</a>
+                 [gr-qc] (2025).</p>
+            </div>
+          </details>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>© Tamanjyot Singh</span>
+        <span class="muted">Supported by NSF grant PHY-2309320</span>
+      </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/3.1.0/plotly-basic.min.js"></script>
+    <script src="figures.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
