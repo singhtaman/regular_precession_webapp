@@ -95,6 +95,14 @@ time. Decided without sign-off:
   few ms earlier (4.4 ms at the defaults), not at t = 0 (About text, `docs/github-pages.md`,
   `time_domain.py` docstring; no code change).
 
+### Time evolution (added after the sphere, not yet committed when written)
+
+Play/pause, speed (default ¼× real time) and a time slider in the sphere card; L leaves a trail,
+the strain is traced behind a cursor and scrolls when zoomed in. Choices without sign-off: the
+default speed, the fade (white at 82% over the future part), the 80/20 cursor position when
+scrolling, hover scrubbing while paused, and the fixed 118 px bottom margin of the strain panel
+(fixes Plotly's margin creep on relayout). Details and checks: `docs/github-pages.md`.
+
 ### Next steps
 
 1. Review locally: `pages/build.sh && python3 -m http.server -d _site 8000`.

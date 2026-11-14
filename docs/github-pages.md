@@ -67,6 +67,16 @@ class on the same frequency grid:
   differentiated numerically on the grid (`np.gradient`); the page inverts t(f) by binary search
   and interpolates f, θ_LJ, φ_LJ linearly between grid points. Times outside
   [t(20 Hz), t(f_cut)] show no marker. Before any hover the marker is at 20 Hz.
+- Time evolution: **Play** runs the time from t(20 Hz) to t(f_cut) at 1×, ½×, ¼× (default) or
+  ⅒× real time. While playing (and when paused or scrubbed afterwards) L leaves a trail on the
+  sphere (the full path is faded), and the strain after the current time is covered by a
+  translucent white band behind a cursor; if the strain view is zoomed in (narrower than 90% of
+  the signal) it scrolls with the cursor, keeping it at 80% of the width. A time slider scrubs
+  (and pauses); a click on the strain plot pauses at that time; hovering scrubs when paused.
+  Reaching the end clears the trail and fade. Switching to the frequency view pauses.
+- The strain panel now has a fixed bottom margin (118 px, `margin.autoexpand: false`): with
+  automatic expansion Plotly 3.1 grew the range bar's margin by ~1 px on every relayout, which
+  shrank the plot visibly during playback (and slightly on every zoom before).
 - Plotly's 3D traces are not in plotly-basic, so `app.js` loads the cdnjs plotly.js 3.1.0 gl3d
   bundle (1.6 MB) the first time the time view opens, keeps it as a separate instance for the
   sphere only, and restores `window.Plotly` to the basic bundle.
@@ -77,6 +87,13 @@ frequency at t(f) is 24.95, 40.18 and 81.76 Hz for f = 25, 40 and 80 Hz (default
 WebKit, the marker after hovering at four in-band times matches the model's L at the marker's
 frequency to ≤ 4×10⁻⁶ and sits within half a strain sample (< 0.5 ms) of the hovered point; out-of-band
 times hide the marker.
+
+Playback checks (Chromium and WebKit): play at 1× reaches the end in ≈3 s at the defaults and
+clears the trace; pause holds the marker and cursor; scrubbing pans the strain view to the cursor;
+a click on the strain while playing pauses there; a slider change during playback continues with
+the new signal; plot height stays constant during playback (320 px desktop, 268 px phone);
+keyboard Space toggles Play. Headless frame rate during playback: 121 fps Chromium, 33 fps WebKit
+(software GL).
 
 The first visit downloads about 32 MB (Python, NumPy, SciPy, Astropy) and is ready in about
 8 seconds on a fast connection; the browser caches it for later visits. Each update then takes

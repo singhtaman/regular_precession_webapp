@@ -233,7 +233,9 @@
     Object.assign(layout.xaxis, { range: [Math.max(t[0], -STRAIN_VIEW), t[t.length - 1]], hoverformat: ".4f",
                                   rangeslider: { visible: true, thickness: 0.1, bgcolor: "#f8f9fb", bordercolor: AXIS, borderwidth: 1 } });
     layout.yaxis.range = [-lim, lim];
-    layout.margin = { l: 62, r: 18, t: 14, b: 40 };
+    // Fixed bottom margin for the range bar and axis title: with automatic expansion Plotly 3.1 grows
+    // the range bar's margin a little on every relayout, which shrinks the plot during playback.
+    layout.margin = { l: 62, r: 18, t: 14, b: 118, autoexpand: false };
     layout.hovermode = "x unified";
     return { data, layout };
   }
@@ -250,6 +252,8 @@
   const ARROW = 1.4;                     // length of the J and N arrows (sphere radius 1)
   const EPS = 1e-6;
   const SPHERE_TRACE = [7, 8, 6];        // traces moved by sphereMoving: L marker, L arrow, orbital plane
+  const TRAIL_TRACE = 11;                // path of L up to the current time (playback)
+  const PATH_TRACE = 2;                  // full path of L, faded during playback
 
   function sphereBands(r) {
     let lo = Infinity, hi = -Infinity;
@@ -343,10 +347,11 @@
     const N = r.sp_N;
     // L's path; long signals are thinned to at most ~8000 points.
     const stride = Math.max(1, Math.ceil(r.sp_theta.length / 8000));
-    const path = [];
-    for (let i = 0; i < r.sp_theta.length; i += stride) path.push(scaled3(unitVec(r.sp_theta[i], r.sp_phi[i]), S_PATH));
+    const path = [], pathT = [];
+    const add = (i) => { path.push(scaled3(unitVec(r.sp_theta[i], r.sp_phi[i]), S_PATH)); pathT.push(r.sp_t[i]); };
+    for (let i = 0; i < r.sp_theta.length; i += stride) add(i);
     const last = r.sp_theta.length - 1;
-    if (last % stride) path.push(scaled3(unitVec(r.sp_theta[last], r.sp_phi[last]), S_PATH));
+    if (last % stride) add(last);
 
     const equator = [];
     for (let k = 0; k <= 120; k++) { const a = k * 2 * Math.PI / 120; equator.push([Math.cos(a), Math.sin(a), 0]); }
@@ -376,6 +381,8 @@
         marker: { color: [J_COLOR, SPHERE.N, "rgba(0,0,0,0)"], size: [6, 6, 1] } },
       { type: "scatter3d", mode: "text", hoverinfo: "skip", showlegend: false, name: "J label",            // 10
         x: [0], y: [0], z: [ARROW + 0.12], text: ["J"], textfont: { color: J_COLOR, size: 14, family: FONT } },
+      { type: "scatter3d", mode: "lines", hoverinfo: "skip", showlegend: false, name: "Path of L so far",   // 11
+        x: [], y: [], z: [], line: { color: RP_COLOR, width: 5 } },
     ];
     const hidden = { visible: false, showspikes: false, range: [-1.55, 1.55] };
     // Camera 35° in azimuth from N (which lies in the y–z plane) and 28° above the equator, J up.
@@ -393,7 +400,17 @@
                   up: { x: 0, y: 0, z: 1 }, center: { x: 0, y: 0, z: 0 } },
       },
     };
-    return { data, layout, bands: b };
+    return { data, layout, bands: b, path: { pts: path, t: pathT } };
+  }
+
+  // Path of L from the start of the signal up to state s (for TRAIL_TRACE), ending at L itself.
+  function sphereTrail(path, s) {
+    if (!s) return { x: [], y: [], z: [] };
+    let lo = 0, hi = path.t.length;  // number of path points with t <= s.t
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (path.t[mid] <= s.t) lo = mid + 1; else hi = mid; }
+    const pts = path.pts.slice(0, lo);
+    pts.push(scaled3(unitVec(s.theta, s.phi), S_PATH));
+    return { x: pts.map((p) => p[0]), y: pts.map((p) => p[1]), z: pts.map((p) => p[2]) };
   }
 
   // Axis-less figure used before the first computation and in empty/error states.
@@ -420,6 +437,6 @@
   window.RPFigures = {
     AMP_DISPLAY_LIMIT, isPoint, isFlatZero, ampPeak, formatG,
     modulationFigure, amplitudeFigure, phaseFigure, strainFigure, placeholderFigure, graphConfig,
-    sphereFigure, sphereAt, sphereMoving, SPHERE, SPHERE_TRACE,
+    sphereFigure, sphereAt, sphereMoving, sphereTrail, SPHERE, SPHERE_TRACE, TRAIL_TRACE, PATH_TRACE,
   };
 })();

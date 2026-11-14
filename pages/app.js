@@ -196,6 +196,7 @@
     document.querySelectorAll(".fd-only").forEach((el) => { el.hidden = d !== "frequency"; });
     document.querySelectorAll(".td-only").forEach((el) => { el.hidden = d !== "time"; });
     $("#plot-grid").classList.toggle("is-time", d === "time");
+    if (d !== "time") pause();
     if (d === "time") loadGl3d();
     schedule();
   }
@@ -264,23 +265,106 @@
     Plot3D.react(sphereEl, fig.data, fig.layout,
                  { ...F.graphConfig("rp_sphere"), modeBarButtonsToRemove: ["resetCameraLastSave3d", "hoverClosest3d"] });
     sphereDrawn = true;
+    spherePath = fig.path;
+    pathFaded = false;
     $("#sphere-key-overlap").hidden = !fig.bands.overlap;
     sphereReadout(r, s, t);
+    $("#play").disabled = !r.sp_t_monotonic;
+    $("#time-scrub").disabled = !r.sp_t_monotonic;
+    paint();
   }
 
-  // Move the L marker and orbital plane to time t (from hovering or tapping the strain plot).
+  // ---------- Time evolution: hover, scrubber and playback all set sphereTime ----------
+  // While "traced" (after Play), the strain after the current time is faded behind a cursor and
+  // L leaves a trail on the sphere; reaching the end of the signal clears it.
+
+  const player = { playing: false, traced: false, raf: 0, last: 0, follow: null };
+  let spherePath = null, pathFaded = false, strainMarked = false;
+
+  function bandRange(r) { return [r.sp_t[0], r.sp_t[r.sp_t.length - 1]]; }
+
+  function paint() {
+    const r = timeResult;
+    if (!r || !sphereDrawn) return;
+    const [s, t] = stateAt(r);
+    const mv = F.sphereMoving(s);
+    const tr = player.traced && spherePath ? F.sphereTrail(spherePath, s) : { x: [], y: [], z: [] };
+    Plot3D.restyle(sphereEl, { x: [...mv.x, tr.x], y: [...mv.y, tr.y], z: [...mv.z, tr.z] },
+                   [...F.SPHERE_TRACE, F.TRAIL_TRACE]);
+    if (pathFaded !== player.traced) {
+      pathFaded = player.traced;
+      Plot3D.restyle(sphereEl, { opacity: pathFaded ? 0.3 : 1 }, [F.PATH_TRACE]);
+    }
+    sphereReadout(r, s, t);
+    markStrain(r, t);
+    const [t0, t1] = bandRange(r), scrub = $("#time-scrub");
+    scrub.value = String(Math.round(1000 * Math.min(1, Math.max(0, (t - t0) / (t1 - t0 || 1)))));
+    scrub.setAttribute("aria-valuetext", `t − t_c = ${t.toFixed(3)} s`);
+  }
+
+  // Cursor and fade on the strain plot while traced; when playing zoomed in, the view scrolls with it.
+  function markStrain(r, t) {
+    const el = graphs.strain.el;
+    if (!el.layout || (!player.traced && !strainMarked)) return;
+    const shapes = [el.layout.shapes[0]];
+    const upd = {};
+    if (player.traced) {
+      shapes.push({ type: "rect", xref: "x", yref: "paper", x0: t, x1: r.t[r.t.length - 1], y0: 0, y1: 1,
+                    fillcolor: "rgba(255,255,255,0.82)", line: { width: 0 }, layer: "above" },
+                  { type: "line", xref: "x", yref: "paper", x0: t, x1: t, y0: 0, y1: 1,
+                    line: { color: "#1d2433", width: 1.2 } });
+      const xr = el._fullLayout.xaxis.range, w = xr[1] - xr[0];
+      if (player.playing && player.follow) upd["xaxis.range"] = [t - 0.8 * player.follow, t + 0.2 * player.follow];
+      else if (!player.playing && (t < xr[0] || t > xr[1])) upd["xaxis.range"] = [t - 0.8 * w, t + 0.2 * w];  // scrubbed out of view
+    }
+    strainMarked = player.traced;
+    upd.shapes = shapes;
+    Plotly.relayout(el, upd);
+  }
+
+  function setPlayButton() {
+    const b = $("#play");
+    b.textContent = player.playing ? "❚❚ Pause" : "▶ Play";
+    b.setAttribute("aria-label", player.playing ? "Pause the time evolution" : "Play the time evolution");
+  }
+
+  function play() {
+    const r = timeResult;
+    if (!r || !sphereDrawn || !r.sp_t_monotonic) return;
+    const [t0, t1] = bandRange(r);
+    if (!player.traced || sphereTime === null || sphereTime < t0 || sphereTime >= t1) sphereTime = t0;
+    // Scroll with the cursor only when zoomed in; keep a full view still.
+    const xr = graphs.strain.el._fullLayout.xaxis.range, w = xr[1] - xr[0];
+    player.follow = w < 0.9 * (r.t[r.t.length - 1] - r.t[0]) ? w : null;
+    player.playing = player.traced = true;
+    player.last = performance.now();
+    setPlayButton();
+    const step = (now) => {
+      if (!player.playing) return;
+      const r2 = timeResult;
+      if (!r2) { pause(); return; }
+      const dt = Math.min(0.1, (now - player.last) / 1000);
+      player.last = now;
+      const end = bandRange(r2)[1];
+      sphereTime = Math.min(end, sphereTime + dt * parseFloat($("#speed").value));
+      if (sphereTime >= end) { pause(); player.traced = false; paint(); return; }
+      paint();
+      player.raf = requestAnimationFrame(step);
+    };
+    player.raf = requestAnimationFrame(step);
+  }
+
+  function pause() {
+    player.playing = false;
+    cancelAnimationFrame(player.raf);
+    setPlayButton();
+  }
+
+  // Hover, tap or scrub: move to time t (paused). Throttled to one update per frame.
   function moveSphere(t) {
     sphereTime = t;
     if (!timeResult || !sphereDrawn || sphereFrame) return;
-    sphereFrame = requestAnimationFrame(() => {
-      sphereFrame = 0;
-      const r = timeResult;
-      if (!r || !sphereDrawn) return;
-      const [s, t2] = stateAt(r);
-      const mv = F.sphereMoving(s);
-      Plot3D.restyle(sphereEl, mv, F.SPHERE_TRACE);
-      sphereReadout(r, s, t2);
-    });
+    sphereFrame = requestAnimationFrame(() => { sphereFrame = 0; paint(); });
   }
 
   let strainLinked = false;
@@ -288,12 +372,14 @@
     if (strainLinked) return;
     strainLinked = true;
     const el = graphs.strain.el;
-    const pick = (e) => {
+    const pick = (click) => (e) => {
+      if (player.playing && !click) return;  // playback owns the time; a click pauses it there
+      if (player.playing) pause();
       const x = e && (e.xvals ? e.xvals[0] : e.points && e.points[0] && e.points[0].x);
       if (typeof x === "number" && isFinite(x)) moveSphere(x);
     };
-    el.on("plotly_hover", pick);
-    el.on("plotly_click", pick);
+    el.on("plotly_hover", pick(false));
+    el.on("plotly_click", pick(true));
   }
 
   function notice(kind, title, body) {
@@ -433,6 +519,15 @@
     if (P) apply(Object.fromEntries(P.groups.flatMap((g) => g.params.map((p) => [p.id, p.value]))));
   });
   $("#export-csv").addEventListener("click", exportCsv);
+  $("#play").addEventListener("click", () => (player.playing ? pause() : play()));
+  $("#time-scrub").addEventListener("input", (e) => {
+    const r = timeResult;
+    if (!r) return;
+    pause();
+    player.traced = true;
+    const [t0, t1] = bandRange(r);
+    moveSphere(t0 + (t1 - t0) * (+e.target.value) / 1000);
+  });
   document.querySelectorAll(".domain-switch button").forEach((b) => b.addEventListener("click", () => setDomain(b.dataset.domain)));
 
   blank();

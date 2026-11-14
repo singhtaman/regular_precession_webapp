@@ -113,9 +113,21 @@
               <article class="plot-card sphere-card td-only" hidden>
                 <header class="plot-head">
                   <h3 class="plot-title">L, the orbital plane and N about J</h3>
-                  <p class="plot-subtitle">Unit sphere with J at the north pole. Hover over or tap the strain plot to place L at that time; drag the sphere to rotate it</p>
+                  <p class="plot-subtitle">Unit sphere with J at the north pole. Press Play to watch L precess while the strain is traced, or hover over the strain plot to place L at that time; drag the sphere to rotate it</p>
                 </header>
                 <div class="plot-frame plot-frame-sphere"><div id="sphere-graph" class="graph" role="img" aria-label="Unit sphere with J at the north pole showing the band of polar angles that L passes through, the path of L, the band of latitudes swept by the orbital plane, the orbital plane at the selected time, and the line of sight N"></div></div>
+                <div class="player" role="group" aria-label="Time evolution">
+                  <button type="button" id="play" class="button" aria-label="Play the time evolution" disabled>▶ Play</button>
+                  <label class="player-speed">Speed
+                    <select id="speed">
+                      <option value="1">1× (real time)</option>
+                      <option value="0.5">½×</option>
+                      <option value="0.25" selected>¼×</option>
+                      <option value="0.1">⅒×</option>
+                    </select>
+                  </label>
+                  <input type="range" id="time-scrub" min="0" max="1000" step="1" value="0" aria-label="Time in the signal" disabled>
+                </div>
                 <p id="sphere-readout" class="sphere-readout"></p>
                 <ul class="sphere-key">
                   <li><i class="swatch swatch-l" aria-hidden="true"></i>Polar angles L passes through</li>
@@ -168,7 +180,11 @@
                  L̂·N̂ = sin θ<sub>LJ</sub> sin ι<sub>JN</sub> sin φ<sub>LJ</sub> + cos θ<sub>LJ</sub> cos ι<sub>JN</sub> holds.
                  A time on the strain plot is matched to a frequency by the stationary-phase relation
                  t(f) = (1/2π) dΨ/df of the orbital phase Ψ (t<sub>c</sub> = 0), with the derivative taken
-                 numerically on the frequency grid; times outside t(20 Hz) to t(f<sub>cut</sub>) have no L marker.</p>
+                 numerically on the frequency grid; times outside t(20 Hz) to t(f<sub>cut</sub>) have no L marker.
+                 <b>Play</b> runs from 20 Hz to f<sub>cut</sub> at the chosen fraction of real time: L leaves a trail
+                 on the sphere, and the strain after the current time is faded behind a cursor (the strain view
+                 scrolls along when zoomed in). The time slider and a click on the strain plot pause it at a chosen
+                 time.</p>
               <p>Frequencies run from 20 Hz up to the cut-off f<sub>cut</sub> = 1/(6<sup>3/2</sup> π M<sub>z</sub>)
                  in steps of 0.05 Hz. Distances use flat ΛCDM with Planck 2018 parameters (H<sub>0</sub> = 67.4,
                  Ω<sub>m</sub> = 0.315). Plots open on the original app's axis windows and extend them when the
