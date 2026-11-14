@@ -13,7 +13,7 @@ const SOURCES = [
   "webapp/__init__.py",
   "webapp/params.py",
   "webapp/physics.py",
-  "bridge.py",
+  "rp_page.py",
 ];
 
 importScripts(PYODIDE + "pyodide.js");
@@ -34,7 +34,12 @@ async function init() {
   progress("Loading the model code");
   pyodide.FS.mkdirTree("/home/pyodide/webapp");
   await Promise.all(SOURCES.map(async (path) => {
-    const res = await fetch("py/" + path);
+    let res;
+    try {
+      res = await fetch("py/" + path);
+    } catch (err) {  // blocked before reaching the server, e.g. by a content blocker
+      throw new Error(`The browser blocked ${path} (${err.message}). A content or ad blocker may be the cause.`);
+    }
     if (!res.ok) throw new Error(`Could not load ${path} (HTTP ${res.status})`);
     pyodide.FS.writeFile("/home/pyodide/" + path, await res.text());
   }));
@@ -43,7 +48,7 @@ async function init() {
   progress("Loading NumPy");
   await pyodide.loadPackage("numpy");
   pyodide.runPython("import sys; sys.path.insert(0, '/home/pyodide')");
-  bridge = pyodide.pyimport("bridge");
+  bridge = pyodide.pyimport("rp_page");
   postMessage({ type: "params", params: JSON.parse(bridge.params_json()) });
 
   progress("Loading SciPy and Astropy");

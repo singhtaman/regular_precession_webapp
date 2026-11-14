@@ -13,7 +13,7 @@ the browser, so it can be hosted on GitHub Pages next to the Vercel app.
 
 - `pages/worker.js` starts Pyodide in a Web Worker, copies in `regular_precession_no_match.py`,
   `systems_lib.py`, `webapp/params.py` and `webapp/physics.py` unchanged, and calls them
-  through `pages/bridge.py`.
+  through `pages/rp_page.py`.
 - `pages/app.js` builds the controls from `webapp/params.py` and mirrors `webapp/callbacks.py`
   (validation, notices, system properties, presets, resets, CSV export in the same format).
 - `pages/figures.js` is a JavaScript port of `webapp/figures.py`; Plotly is not available in
