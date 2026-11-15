@@ -47,8 +47,9 @@ There is no Dash/Vercel version of this view yet.
 
 ### Sphere: L, the orbital plane and N about J
 
-A rotatable unit sphere next to the modulation of L, shown only in the time view (the system
-properties move below the strain panel there). `webapp/sphere.py` computes it from the unmodified
+A rotatable unit sphere, shown in both views. Frequency view: beside the modulation of L, above
+the amplitude and phase panels, with the system properties below. Time view: a 2 × 2 grid of
+modulation of L | system properties over sphere | strain, the strain filling the row's height. `webapp/sphere.py` computes it from the unmodified
 class on the same frequency grid:
 
 - Frame: z = J (north pole), x = the axis from which the model measures φ_LJ.
@@ -61,7 +62,8 @@ class on the same frequency grid:
   and an arrow. This is the direction implied by the model's `LdotN(f)` =
   sin θ_LJ sin ι_JN sin φ_LJ + cos θ_LJ cos ι_JN; `directions()` returns max |L·N − LdotN| on every
   call (`sp_ldotn_error`).
-- Linked to time: hovering over (or tapping) the strain plot moves the L marker, its arrow and the
+- Linked to time: hovering over (or tapping) the strain plot, or the amplitude or phase plot at a
+  frequency f (converted to t(f)), moves the L marker, its arrow and the
   orbital-plane great circle to that time. Time → frequency uses the stationary-phase relation of
   the model's orbital phase, t(f) = (1/2π) dΨ/df with Ψ = `Regular_precession.Psi` (t_c = 0),
   differentiated numerically on the grid (`np.gradient`); the page inverts t(f) by binary search
@@ -73,12 +75,14 @@ class on the same frequency grid:
   translucent white band behind a cursor; if the strain view is zoomed in (narrower than 90% of
   the signal) it scrolls with the cursor, keeping it at 80% of the width. A time slider scrubs
   (and pauses); a click on the strain plot pauses at that time; hovering scrubs when paused.
-  Reaching the end clears the trail and fade. Switching to the frequency view pauses.
+  Reaching the end clears the trail and fade. In the frequency view the same cursor and fade
+  mark the amplitude and phase plots at the current frequency (the frequency axis does not scroll).
+  Switching views pauses.
 - The strain panel now has a fixed bottom margin (118 px, `margin.autoexpand: false`): with
   automatic expansion Plotly 3.1 grew the range bar's margin by ~1 px on every relayout, which
   shrank the plot visibly during playback (and slightly on every zoom before).
 - Plotly's 3D traces are not in plotly-basic, so `app.js` loads the cdnjs plotly.js 3.1.0 gl3d
-  bundle (1.6 MB) the first time the time view opens, keeps it as a separate instance for the
+  bundle (1.6 MB) once the model is ready, keeps it as a separate instance for the
   sphere only, and restores `window.Plotly` to the basic bundle.
 
 Checks (14 Nov): L·N − LdotN ≤ 2.2×10⁻¹⁶ over 45 parameter sets (defaults, extremes, 40 random;
@@ -124,3 +128,10 @@ python3 -m http.server -d _site 8000 # http://localhost:8000
 `feature/github-pages`, or by hand from the Actions tab. One-time setup in the repository
 settings: Pages → Source: **GitHub Actions**, and allow `feature/github-pages` under
 Environments → github-pages → Deployment branches.
+
+Sphere in the frequency view (added 14 Nov, after the time view): `rp_page.evaluate` now returns
+the sphere arrays in both views. Checked in headless Chromium: hovering the amplitude plot at 60 Hz
+and the phase plot at 100 Hz places L at 59.6 and 99.6 Hz (pixel rounding); playback advances the
+cursor on both plots on the log frequency axis; click to pause, scrub, play to the end, a slider
+change during playback, switching views both ways, 390 px width without horizontal scroll, no
+console errors.

@@ -103,17 +103,17 @@
                 </header>
                 <div class="plot-frame"><div id="phase-graph" class="graph"></div></div>
               </article>
-              <article class="plot-card plot-wide td-only" hidden>
+              <article class="plot-card strain-card td-only" hidden>
                 <header class="plot-head">
                   <h3 class="plot-title">Strain</h3>
                   <p class="plot-subtitle">Detector strain h(t) of the precessing and non-precessing signals. Opens on the last 0.5 s; drag the range bar to see the whole signal</p>
                 </header>
                 <div class="plot-frame plot-frame-tall"><div id="strain-graph" class="graph"></div></div>
               </article>
-              <article class="plot-card sphere-card td-only" hidden>
+              <article class="plot-card sphere-card">
                 <header class="plot-head">
                   <h3 class="plot-title">L, the orbital plane and N about J</h3>
-                  <p class="plot-subtitle">Unit sphere with J at the north pole. Press Play to watch L precess while the strain is traced, or hover over the strain plot to place L at that time; drag the sphere to rotate it</p>
+                  <p class="plot-subtitle">Unit sphere with J at the north pole. Press Play to watch L precess while the signal is traced, or hover over the amplitude, phase or strain plot to place L there; drag the sphere to rotate it</p>
                 </header>
                 <div class="plot-frame plot-frame-sphere"><div id="sphere-graph" class="graph" role="img" aria-label="Unit sphere with J at the north pole showing the band of polar angles that L passes through, the path of L, the band of latitudes swept by the orbital plane, the orbital plane at the selected time, and the line of sight N"></div></div>
                 <div class="player" role="group" aria-label="Time evolution">
@@ -169,8 +169,8 @@
                  so t = 0 is the coalescence time; the signal reaches the cut-off frequency a few
                  milliseconds earlier (4 ms at the default parameters). The band edges are tapered with a Tukey
                  window (α = 0.1) so the sharp start at 20 Hz and cut-off at f<sub>cut</sub> don't ring. The
-                 modulation of L and the system properties are the same in both views.</p>
-              <p><b>Sphere (time view):</b> directions on the unit sphere in the source frame with J at the north
+                 modulation of L, the sphere and the system properties are the same in both views.</p>
+              <p><b>Sphere (both views):</b> directions on the unit sphere in the source frame with J at the north
                  pole and the x axis from which the model measures φ<sub>LJ</sub>. L = (sin θ<sub>LJ</sub> cos φ<sub>LJ</sub>,
                  sin θ<sub>LJ</sub> sin φ<sub>LJ</sub>, cos θ<sub>LJ</sub>); the blue band spans the polar angles θ<sub>LJ</sub>
                  takes from 20 Hz to f<sub>cut</sub>, and the blue curve is the path of L. The orbital plane is
@@ -178,13 +178,13 @@
                  within ±max θ<sub>LJ</sub> of the equator (orange). The line of sight is
                  N̂ = (0, sin ι<sub>JN</sub>, cos ι<sub>JN</sub>), the direction for which the model's
                  L̂·N̂ = sin θ<sub>LJ</sub> sin ι<sub>JN</sub> sin φ<sub>LJ</sub> + cos θ<sub>LJ</sub> cos ι<sub>JN</sub> holds.
-                 A time on the strain plot is matched to a frequency by the stationary-phase relation
+                 A time on the strain plot, or a frequency on the amplitude and phase plots, is matched to L by the stationary-phase relation
                  t(f) = (1/2π) dΨ/df of the orbital phase Ψ (t<sub>c</sub> = 0), with the derivative taken
                  numerically on the frequency grid; times outside t(20 Hz) to t(f<sub>cut</sub>) have no L marker.
                  <b>Play</b> runs from 20 Hz to f<sub>cut</sub> at the chosen fraction of real time: L leaves a trail
-                 on the sphere, and the strain after the current time is faded behind a cursor (the strain view
-                 scrolls along when zoomed in). The time slider and a click on the strain plot pause it at a chosen
-                 time.</p>
+                 on the sphere, and the strain after the current time (time view) or the amplitude and phase above the
+                 current frequency (frequency view) are faded behind a cursor; the strain view scrolls along when
+                 zoomed in. The time slider and a click on a linked plot pause it at a chosen time.</p>
               <p>Frequencies run from 20 Hz up to the cut-off f<sub>cut</sub> = 1/(6<sup>3/2</sup> π M<sub>z</sub>)
                  in steps of 0.05 Hz. Distances use flat ΛCDM with Planck 2018 parameters (H<sub>0</sub> = 67.4,
                  Ω<sub>m</sub> = 0.315). Plots open on the original app's axis windows and extend them when the

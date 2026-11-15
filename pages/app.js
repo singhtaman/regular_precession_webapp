@@ -23,12 +23,12 @@
   let busy = false, pending = null, runId = 0;
 
   // The J-frame sphere needs Plotly's 3D traces, which plotly-basic lacks. The gl3d bundle (1.6 MB)
-  // is loaded the first time the Time view opens. It also defines window.Plotly, so the basic
-  // build is put back afterwards and the two are kept apart: Plot3D draws only the sphere.
+  // is loaded once the model is ready. It also defines window.Plotly, so the basic build is put
+  // back afterwards and the two are kept apart: Plot3D draws only the sphere.
   const GL3D = "https://cdnjs.cloudflare.com/ajax/libs/plotly.js/3.1.0/plotly-gl3d.min.js";
   const sphereEl = $("#sphere-graph");
   let Plot3D = null, gl3dLoading = null;
-  let timeResult = null;     // last time-domain result, for the sphere
+  let sphereResult = null;   // last result with sphere data (either view)
   let sphereTime = null;     // time shown on the sphere (null: start of the signal)
   let sphereDrawn = false, sphereFrame = 0;
 
@@ -196,8 +196,7 @@
     document.querySelectorAll(".fd-only").forEach((el) => { el.hidden = d !== "frequency"; });
     document.querySelectorAll(".td-only").forEach((el) => { el.hidden = d !== "time"; });
     $("#plot-grid").classList.toggle("is-time", d === "time");
-    if (d !== "time") pause();
-    if (d === "time") loadGl3d();
+    pause();
     schedule();
   }
 
@@ -210,11 +209,11 @@
 
   function blank(message) {
     for (const key of Object.keys(graphs)) draw(key, F.placeholderFigure(message));
-    timeResult = null;
+    sphereResult = null;
     clearSphere("");  // the notice above the plots explains the empty state
   }
 
-  // ---------- J-frame sphere (time view) ----------
+  // ---------- J-frame sphere (both views) ----------
 
   function loadGl3d() {
     if (!gl3dLoading) {
@@ -225,7 +224,7 @@
         s.onload = () => { Plot3D = window.Plotly; window.Plotly = basic; resolve(); };
         s.onerror = () => { window.Plotly = basic; reject(new Error("Could not download the 3D plotting library")); };
         document.head.append(s);
-      }).then(() => { if (timeResult) drawSphere(timeResult); },
+      }).then(() => { if (sphereResult) drawSphere(sphereResult); },
               (err) => { gl3dLoading = null; clearSphere(err.message + "; reload the page to try again."); });
     }
     return gl3dLoading;
@@ -242,7 +241,7 @@
   function sphereReadout(r, s, requested) {
     const el = $("#sphere-readout");
     if (!r.sp_t_monotonic) {
-      el.textContent = "The time map t(f) is not monotonic for these parameters, so the sphere is not linked to the strain plot.";
+      el.textContent = "The time map t(f) is not monotonic for these parameters, so the sphere is not linked to the other plots.";
     } else if (!s) {
       el.replaceChildren(`t − t`, h("sub", {}, "c"), ` = ${fmt(requested, 3)} s is outside the band `
         + `(${fmt(r.sp_t[0], 3)} to ${fmt(r.sp_t[r.sp_t.length - 1], 4)} s), so no L is marked.`);
@@ -259,7 +258,7 @@
   }
 
   function drawSphere(r) {
-    if (!Plot3D || domain !== "time") return;
+    if (!Plot3D) return;
     const [s, t] = stateAt(r);
     const fig = F.sphereFigure(r, s);
     Plot3D.react(sphereEl, fig.data, fig.layout,
@@ -275,16 +274,17 @@
   }
 
   // ---------- Time evolution: hover, scrubber and playback all set sphereTime ----------
-  // While "traced" (after Play), the strain after the current time is faded behind a cursor and
-  // L leaves a trail on the sphere; reaching the end of the signal clears it.
+  // While "traced" (after Play), the strain (time view) or the amplitude and phase (frequency view)
+  // after the current time are faded behind a cursor, and L leaves a trail on the sphere; reaching
+  // the end of the signal clears it.
 
   const player = { playing: false, traced: false, raf: 0, last: 0, follow: null };
-  let spherePath = null, pathFaded = false, strainMarked = false;
+  let spherePath = null, pathFaded = false, strainMarked = false, freqMarked = false;
 
   function bandRange(r) { return [r.sp_t[0], r.sp_t[r.sp_t.length - 1]]; }
 
   function paint() {
-    const r = timeResult;
+    const r = sphereResult;
     if (!r || !sphereDrawn) return;
     const [s, t] = stateAt(r);
     const mv = F.sphereMoving(s);
@@ -296,7 +296,7 @@
       Plot3D.restyle(sphereEl, { opacity: pathFaded ? 0.3 : 1 }, [F.PATH_TRACE]);
     }
     sphereReadout(r, s, t);
-    markStrain(r, t);
+    if (domain === "time") markStrain(r, t); else markFrequency(s);
     const [t0, t1] = bandRange(r), scrub = $("#time-scrub");
     scrub.value = String(Math.round(1000 * Math.min(1, Math.max(0, (t - t0) / (t1 - t0 || 1)))));
     scrub.setAttribute("aria-valuetext", `t − t_c = ${t.toFixed(3)} s`);
@@ -305,7 +305,7 @@
   // Cursor and fade on the strain plot while traced; when playing zoomed in, the view scrolls with it.
   function markStrain(r, t) {
     const el = graphs.strain.el;
-    if (!el.layout || (!player.traced && !strainMarked)) return;
+    if (!r.t || !el.layout || (!player.traced && !strainMarked)) return;
     const shapes = [el.layout.shapes[0]];
     const upd = {};
     if (player.traced) {
@@ -322,6 +322,26 @@
     Plotly.relayout(el, upd);
   }
 
+  // The same cursor and fade on the amplitude and phase plots, at the frequency f(t) of L's state s.
+  // The frequency axis stays as it is: the whole band is normally in view.
+  function markFrequency(s) {
+    if (!player.traced && !freqMarked) return;
+    const f = player.traced && s ? s.f : null;
+    for (const key of ["amp", "phase"]) {
+      const el = graphs[key].el;
+      if (!el.layout || !el.layout.shapes) continue;
+      const shapes = [el.layout.shapes[0]];
+      if (f !== null) {
+        shapes.push({ type: "rect", xref: "x", yref: "paper", x0: f, x1: 1e4, y0: 0, y1: 1,
+                      fillcolor: "rgba(255,255,255,0.82)", line: { width: 0 }, layer: "above" },
+                    { type: "line", xref: "x", yref: "paper", x0: f, x1: f, y0: 0, y1: 1,
+                      line: { color: "#1d2433", width: 1.2 } });
+      }
+      Plotly.relayout(el, { shapes });
+    }
+    freqMarked = f !== null;
+  }
+
   function setPlayButton() {
     const b = $("#play");
     b.textContent = player.playing ? "❚❚ Pause" : "▶ Play";
@@ -329,19 +349,22 @@
   }
 
   function play() {
-    const r = timeResult;
+    const r = sphereResult;
     if (!r || !sphereDrawn || !r.sp_t_monotonic) return;
     const [t0, t1] = bandRange(r);
     if (!player.traced || sphereTime === null || sphereTime < t0 || sphereTime >= t1) sphereTime = t0;
-    // Scroll with the cursor only when zoomed in; keep a full view still.
-    const xr = graphs.strain.el._fullLayout.xaxis.range, w = xr[1] - xr[0];
-    player.follow = w < 0.9 * (r.t[r.t.length - 1] - r.t[0]) ? w : null;
+    // Scroll the strain plot with the cursor only when zoomed in; keep a full view still.
+    player.follow = null;
+    if (domain === "time" && r.t && graphs.strain.el._fullLayout) {
+      const xr = graphs.strain.el._fullLayout.xaxis.range, w = xr[1] - xr[0];
+      if (w < 0.9 * (r.t[r.t.length - 1] - r.t[0])) player.follow = w;
+    }
     player.playing = player.traced = true;
     player.last = performance.now();
     setPlayButton();
     const step = (now) => {
       if (!player.playing) return;
-      const r2 = timeResult;
+      const r2 = sphereResult;
       if (!r2) { pause(); return; }
       const dt = Math.min(0.1, (now - player.last) / 1000);
       player.last = now;
@@ -363,20 +386,24 @@
   // Hover, tap or scrub: move to time t (paused). Throttled to one update per frame.
   function moveSphere(t) {
     sphereTime = t;
-    if (!timeResult || !sphereDrawn || sphereFrame) return;
+    if (!sphereResult || !sphereDrawn || sphereFrame) return;
     sphereFrame = requestAnimationFrame(() => { sphereFrame = 0; paint(); });
   }
 
-  let strainLinked = false;
-  function linkStrain() {
-    if (strainLinked) return;
-    strainLinked = true;
-    const el = graphs.strain.el;
+  // Hovering or clicking a plot places L there: x is a time on the strain plot and a frequency on
+  // the amplitude and phase plots, converted with t(f).
+  const linked = {};
+  function link(key) {
+    if (linked[key]) return;
+    linked[key] = true;
+    const el = graphs[key].el;
     const pick = (click) => (e) => {
       if (player.playing && !click) return;  // playback owns the time; a click pauses it there
       if (player.playing) pause();
       const x = e && (e.xvals ? e.xvals[0] : e.points && e.points[0] && e.points[0].x);
-      if (typeof x === "number" && isFinite(x)) moveSphere(x);
+      if (typeof x !== "number" || !isFinite(x)) return;
+      if (key === "strain") moveSphere(x);
+      else if (sphereResult) { const t = F.timeAtFrequency(sphereResult, x); if (t !== null) moveSphere(t); }
     };
     el.on("plotly_hover", pick(false));
     el.on("plotly_click", pick(true));
@@ -466,13 +493,17 @@
     draw("mod", F.modulationFigure(r));
     if (time) {
       draw("strain", F.strainFigure(r));
-      linkStrain();
-      timeResult = r;
-      if (Plot3D) drawSphere(r); else $("#sphere-readout").textContent = "Loading the 3D view…";
+      link("strain");
+      strainMarked = false;
     } else {
       draw("amp", F.amplitudeFigure(r));
       draw("phase", F.phaseFigure(r));
+      link("amp");
+      link("phase");
+      freqMarked = false;
     }
+    sphereResult = r;
+    if (Plot3D) drawSphere(r); else $("#sphere-readout").textContent = "Loading the 3D view…";
     exportBtn.disabled = false;
   }
 
@@ -502,6 +533,7 @@
       grid = m.grid;
       $("#loading").hidden = true;
       enable();
+      loadGl3d();
       schedule();
     } else if (m.type === "result") {
       if (!pending) render(m.data, Boolean(m.data.t));  // skip results already superseded
@@ -521,7 +553,7 @@
   $("#export-csv").addEventListener("click", exportCsv);
   $("#play").addEventListener("click", () => (player.playing ? pause() : play()));
   $("#time-scrub").addEventListener("input", (e) => {
-    const r = timeResult;
+    const r = sphereResult;
     if (!r) return;
     pause();
     player.traced = true;

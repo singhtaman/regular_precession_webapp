@@ -329,6 +329,17 @@
     return { t, f: lerp(r.f), theta: lerp(r.sp_theta), phi: lerp(r.sp_phi) };
   }
 
+  // Time t(f) at frequency f, interpolated on the grid; null outside the band or if t(f) is not
+  // increasing. Links the amplitude and phase plots (x = f) to the sphere.
+  function timeAtFrequency(r, f) {
+    const fs = r.f, ts = r.sp_t, n = ts ? ts.length : 0;
+    if (!n || !r.sp_t_monotonic || !(f >= fs[0] && f <= fs[n - 1])) return null;
+    let lo = 0, hi = n - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (fs[mid] <= f) lo = mid; else hi = mid; }
+    const w = hi > lo ? (f - fs[lo]) / (fs[hi] - fs[lo]) : 0;
+    return ts[lo] + w * (ts[hi] - ts[lo]);
+  }
+
   // Coordinates for the traces in SPHERE_TRACE at state s (empty when s is null).
   function sphereMoving(s) {
     if (!s) return { x: [[], [], []], y: [[], [], []], z: [[], [], []] };
@@ -437,6 +448,6 @@
   window.RPFigures = {
     AMP_DISPLAY_LIMIT, isPoint, isFlatZero, ampPeak, formatG,
     modulationFigure, amplitudeFigure, phaseFigure, strainFigure, placeholderFigure, graphConfig,
-    sphereFigure, sphereAt, sphereMoving, sphereTrail, SPHERE, SPHERE_TRACE, TRAIL_TRACE, PATH_TRACE,
+    sphereFigure, sphereAt, timeAtFrequency, sphereMoving, sphereTrail, SPHERE, SPHERE_TRACE, TRAIL_TRACE, PATH_TRACE,
   };
 })();

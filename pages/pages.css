@@ -97,16 +97,21 @@
 .key-np { border-top: 2.5px solid rgba(29, 36, 51, 0.55); }
 .legend-item[hidden], .plot-card[hidden] { display: none; }
 
-/* Time-domain strain spans both columns of the grid. */
-.plot-wide { grid-column: 1 / -1; }
 .plot-frame-tall { height: 460px; }
 
-/* J-frame sphere: in the time view it sits next to the modulation of L, just above the strain
-   plot it is linked to; the system properties move below. */
-.plot-grid.is-time .plot-card { order: 4; }
-.plot-grid.is-time .plot-card:first-child { order: 1; }
-.plot-grid.is-time .sphere-card { order: 2; }
-.plot-grid.is-time .plot-wide { order: 3; }
+/* Frequency view: the sphere sits next to the modulation of L, above the amplitude and phase
+   plots it is linked to; the system properties move below them. */
+.plot-grid .plot-card { order: 4; }
+.plot-grid .plot-card:first-child { order: 1; }
+.plot-grid .sphere-card { order: 2; }
+.plot-grid .fd-only { order: 3; }
+
+/* Time view: a 2 × 2 grid of modulation of L and system properties above the sphere and the
+   strain, which side by side share a row; the strain plot fills the row's height. */
+.plot-grid.is-time .stats-card { order: 2; }
+.plot-grid.is-time .sphere-card { order: 3; }
+.plot-grid.is-time .strain-card { order: 4; }
+.plot-grid.is-time .strain-card .plot-frame-tall { flex: 1 1 auto; height: auto; min-height: 460px; }
 
 .plot-frame-sphere { height: 380px; touch-action: none; }
 .sphere-readout {
