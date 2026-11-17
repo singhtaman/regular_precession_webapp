@@ -135,3 +135,11 @@ and the phase plot at 100 Hz places L at 59.6 and 99.6 Hz (pixel rounding); play
 cursor on both plots on the log frequency axis; click to pause, scrub, play to the end, a slider
 change during playback, switching views both ways, 390 px width without horizontal scroll, no
 console errors.
+
+## Vercel (browser version, separate project)
+
+On this branch `vercel.json` describes the static browser build (no framework, no install,
+`sh pages/build.sh`, output `_site/`), so a separate Vercel project with production branch
+`feature/github-pages` serves the same site as GitHub Pages. The Dash app's Vercel project is
+unaffected: it deploys `feature/vercel-ui`, which keeps its own Flask `vercel.json`. Note that the
+Dash project also builds preview deployments of this branch, which now show the browser build.
